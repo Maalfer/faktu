@@ -23,6 +23,7 @@ class GastoBase(BaseModel):
     importe: float = Field(gt=0)
     proveedor: str = Field(default="", max_length=200)
     notas: str = Field(default="", max_length=500)
+    deducible: bool = True
 
     @field_validator("concepto")
     @classmethod
@@ -51,6 +52,7 @@ class GastoRead(BaseModel):
     notas: str
     archivo: str | None = None
     archivo_nombre: str | None = None
+    deducible: bool = True
     trimestre: int
 
     model_config = {"from_attributes": True}
@@ -67,5 +69,6 @@ class GastoAnual(BaseModel):
     proveedor: str
     archivo: str | None = None
     archivo_nombre: str | None = None
+    deducible: bool = True
 
     model_config = {"from_attributes": True}

@@ -9,6 +9,7 @@ from app.api.deps import CurrentUser, DbSession
 from app.api.routes.trimestres import get_quarter, quarter_order, quarter_range
 from app.models import Factura, Gasto
 from app.schemas.trimestre import DashboardQuarter, DashboardResponse
+from app.services.libro import build_libro
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -26,6 +27,8 @@ async def get_dashboard(user: CurrentUser, db: DbSession, year: int | None = Non
 
     start, end = date(year, 1, 1), date(year, 12, 31)
 
+    libro = {q.num: q for q in (await build_libro(db, user.id, year)).trimestres}
+
     facturas = (await db.scalars(select(Factura).options(selectinload(Factura.lineas)).where(
         Factura.user_id == user.id, Factura.fecha_emision >= start, Factura.fecha_emision <= end))).all()
     gastos = (await db.scalars(select(Gasto).where(
@@ -34,12 +37,13 @@ async def get_dashboard(user: CurrentUser, db: DbSession, year: int | None = Non
     trimestres: list[DashboardQuarter] = []
     for q in quarter_order(year, current_year, current_quarter):
         qs, qe = quarter_range(year, q)
-        qf = [f for f in facturas if qs <= f.fecha_emision <= qe]
-        qg = [g for g in gastos if qs <= g.fecha <= qe]
-        facturado = sum((f.total for f in qf), Decimal("0"))
+        qf = [f for f in facturas if qs <= f.fecha_emision <= qe and f.estado != "borrador"]
+        qg = [g for g in gastos if qs <= g.fecha <= qe and g.deducible]
+        # Mismas cifras que el libro de Trimestres: facturas + anotaciones manuales
+        facturado = libro[q].total_ingresos
+        gasto_total = libro[q].total_gastos
         base = sum((f.base_imponible for f in qf), Decimal("0"))
         iva = sum((f.cuota_iva for f in qf), Decimal("0"))
-        gasto_total = sum((g.importe for g in qg), Decimal("0"))
         trimestres.append(DashboardQuarter(
             num=q,
             label=f"T{q}",

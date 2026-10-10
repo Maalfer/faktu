@@ -125,6 +125,7 @@ function gastoCard(g) {
           ${g.proveedor ? `<p class="truncate text-xs text-slate-400">${esc(g.proveedor)}</p>` : ""}
         </div>
         <span class="badge bg-rose-50 text-rose-600 ring-1 ring-rose-100">${esc(g.categoria)}</span>
+        ${g.deducible === false ? `<span class="badge bg-amber-50 text-amber-700 ring-1 ring-amber-100" title="No computa en totales">No deducible</span>` : ""}
       </div>
       <div class="mt-3 flex items-end justify-between">
         <div>
@@ -196,6 +197,10 @@ export async function openGastoForm(id = null) {
             <input class="input" name="proveedor" value="${esc(g?.proveedor || "")}" placeholder="Empresa o tienda">
           </div>
         </div>
+        <label class="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" name="deducible" ${g?.deducible === false ? "" : "checked"} class="h-4 w-4 rounded border-slate-300">
+          Gasto deducible (computa en trimestres y panel)
+        </label>
         <div>
           <label class="label">Notas</label>
           <textarea class="input" name="notas" rows="2" placeholder="Opcional">${esc(g?.notas || "")}</textarea>
@@ -237,6 +242,7 @@ async function submitGasto(e) {
     importe: parseFloat(form.elements.importe.value),
     proveedor: form.elements.proveedor.value.trim(),
     notas: form.elements.notas.value.trim(),
+    deducible: form.elements.deducible.checked,
   };
   const btn = form.querySelector('button[type="submit"]');
   btn.disabled = true;

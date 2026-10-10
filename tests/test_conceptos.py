@@ -165,3 +165,26 @@ async def test_libro_automatico_desde_ingresos_y_gastos(auth):
     r = await client.get("/api/v1/conceptos?year=2026", headers=headers)
     t3 = next(q for q in r.json()["trimestres"] if q["num"] == 3)
     assert t3["gastos"] == []
+
+
+async def test_gasto_no_deducible_no_computa_y_panel_coincide_con_libro(auth):
+    from tests.test_gastos import crear_gasto
+
+    client, headers = auth
+    await crear_gasto(client, headers, fecha="2026-02-10", importe=100, concepto="Hosting")
+    g = await crear_gasto(client, headers, fecha="2026-02-11", importe=900, concepto="Pago modelo 303")
+    r = await client.put(f"/api/v1/gastos/{g['id']}", headers=headers, json={
+        "concepto": "Pago modelo 303", "categoria": "Varios", "fecha": "2026-02-11",
+        "importe": 900, "proveedor": "AEAT", "notas": "", "deducible": False,
+    })
+    assert r.status_code == 200 and r.json()["deducible"] is False
+    await client.post("/api/v1/conceptos", headers=headers, json={
+        "year": 2026, "trimestre": 1, "tipo": "ingreso", "concepto": "YouTube", "importe": 400, "iva": None, "orden": 0,
+    })
+
+    libro = (await client.get("/api/v1/conceptos?year=2026", headers=headers)).json()
+    t1 = next(q for q in libro["trimestres"] if q["num"] == 1)
+    assert float(t1["total_gastos"]) == 100.0
+    panel = (await client.get("/api/v1/dashboard?year=2026", headers=headers)).json()
+    p1 = next(q for q in panel["trimestres"] if q["num"] == 1)
+    assert float(p1["gastos"]) == float(t1["total_gastos"]) and float(p1["facturado"]) == float(t1["total_ingresos"]) == 400.0

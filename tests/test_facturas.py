@@ -133,8 +133,8 @@ async def test_zip_de_facturas_del_trimestre(auth):
     import io, zipfile
 
     client, headers = auth
-    for fecha in ("2026-08-03", "2026-09-10", "2026-10-02"):
-        r = await client.post("/api/v1/facturas", headers=headers, json={**PAYLOAD, "fecha_emision": fecha})
+    for i, fecha in enumerate(("2026-08-03", "2026-09-10", "2026-10-02")):
+        r = await client.post("/api/v1/facturas", headers=headers, json={**PAYLOAD, "numero": f"{i + 1:02d}/2026", "fecha_emision": fecha})
         assert r.status_code == 201, r.text
     r = await client.get("/api/v1/facturas/zip?year=2026&trimestre=3", headers=headers)
     assert r.status_code == 200 and r.headers["content-type"] == "application/zip"
@@ -142,3 +142,11 @@ async def test_zip_de_facturas_del_trimestre(auth):
     assert len(zf.namelist()) == 2 and all(n.endswith(".pdf") for n in zf.namelist())
     assert zf.read(zf.namelist()[0]).startswith(b"%PDF")
     assert (await client.get("/api/v1/facturas/zip?year=2026&trimestre=1", headers=headers)).status_code == 404
+
+
+async def test_numero_repetido_se_rechaza(auth):
+    client, headers = auth
+    r = await client.post("/api/v1/facturas", headers=headers, json={**PAYLOAD, "numero": "05/2026"})
+    assert r.status_code == 201, r.text
+    r = await client.post("/api/v1/facturas", headers=headers, json={**PAYLOAD, "numero": "05/2026"})
+    assert r.status_code == 409

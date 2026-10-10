@@ -86,7 +86,7 @@ async def get_trimestres(user: CurrentUser, db: DbSession, year: int | None = No
         base = sum((f.base_imponible for f in qf), Decimal("0"))
         iva = sum((f.cuota_iva for f in qf), Decimal("0"))
         irpf = sum((f.cuota_irpf for f in qf), Decimal("0"))
-        total_gastos = sum((g.importe for g in qg), Decimal("0"))
+        total_gastos = sum((g.importe for g in qg if g.deducible), Decimal("0"))
 
         is_current = year == current_year and q == current_quarter
         is_future = (year == current_year and q > current_quarter) or year > current_year
@@ -106,7 +106,7 @@ async def get_trimestres(user: CurrentUser, db: DbSession, year: int | None = No
                 base_imponible=base,
                 cuota_iva=iva,
                 cuota_irpf=irpf,
-                num_gastos=len(qg),
+                num_gastos=sum(1 for g in qg if g.deducible),
                 total_gastos=total_gastos,
             ),
             facturas=[FacturaListItem.model_validate(f) for f in qf],

@@ -51,6 +51,19 @@ async def _apply_payload(db: DbSession, factura: Factura, payload: FacturaCreate
         if not k or k.user_id != user_id:
             raise HTTPException(status_code=422, detail="Cliente no válido")
 
+    # Numeración correlativa: no se admiten dos facturas con el mismo número en la misma serie y año
+    if factura.id is None or (factura.numero, factura.serie, factura.fecha_emision.year) != (
+        payload.numero, payload.serie, payload.fecha_emision.year
+    ):
+        repetida = await db.scalar(select(func.count()).select_from(Factura).where(
+            Factura.user_id == user_id, Factura.numero == payload.numero, Factura.serie == payload.serie,
+            Factura.fecha_emision >= date(payload.fecha_emision.year, 1, 1),
+            Factura.fecha_emision <= date(payload.fecha_emision.year, 12, 31),
+            Factura.id != (factura.id or 0),
+        ))
+        if repetida:
+            raise HTTPException(status_code=409, detail=f"Ya existe una factura con el número {payload.serie}{payload.numero} en {payload.fecha_emision.year}")
+
     for k, v in data.items():
         setattr(factura, k, v)
 

@@ -53,7 +53,7 @@ LINEAS_HEADER = [
 
 GASTOS_HEADER = [
     "id", "concepto", "categoria", "fecha", "importe", "proveedor",
-    "notas", "archivo", "archivo_nombre", "trimestre", "created_at",
+    "notas", "archivo", "archivo_nombre", "deducible", "trimestre", "created_at",
 ]
 
 CONCEPTOS_HEADER = [
@@ -224,7 +224,7 @@ async def build_export_zip(db: AsyncSession, user_id: int) -> bytes:
         {
             "id": g.id, "concepto": g.concepto, "categoria": g.categoria,
             "fecha": g.fecha, "importe": g.importe, "proveedor": g.proveedor,
-            "notas": g.notas, "archivo": g.archivo, "archivo_nombre": g.archivo_nombre,
+            "notas": g.notas, "archivo": g.archivo, "archivo_nombre": g.archivo_nombre, "deducible": g.deducible,
             "trimestre": g.trimestre, "created_at": g.created_at,
         } for g in gastos
     ]
