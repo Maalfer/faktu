@@ -89,6 +89,37 @@ export async function renderConfig(container) {
           </div>
         </div>
       </div>
+
+      <div class="card mt-5 p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-brand-600">Exportar todos mis datos (CSV)</h2>
+            <p class="mt-2 max-w-2xl text-sm text-slate-500">
+              Genera un archivo ZIP con el <strong>100% de la información</strong> de tu cuenta de
+              todos los años: clientes, facturas con sus líneas, gastos, libro de conceptos,
+              configuración del emisor y tokens de API (sin secretos). Útil para copias de
+              seguridad o para llevarte los datos a otra herramienta.
+            </p>
+          </div>
+          <button class="btn-primary shrink-0" id="export-data">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="mr-1"><path d="M5 20h14v-2H5v2zm7-18a1 1 0 0 1 1 1v9.59l3.3-3.3 1.4 1.42-5.7 5.7-5.7-5.7 1.4-1.42 3.3 3.3V3a1 1 0 0 1 1-1z"/></svg>
+            Exportar ZIP
+          </button>
+        </div>
+        <details class="mt-4 text-xs text-slate-500">
+          <summary class="cursor-pointer font-semibold text-slate-600">¿Qué incluye el ZIP?</summary>
+          <ul class="mt-2 space-y-1 pl-4 list-disc">
+            <li><code>clientes.csv</code> — todos tus clientes con NIF, dirección y notas.</li>
+            <li><code>facturas.csv</code> — cada factura con datos emisor/receptor, IVA/IRPF, base imponible, cuotas, total, trimestre, estado y método de cobro.</li>
+            <li><code>lineas_factura.csv</code> — líneas de cada factura (concepto, cantidad, precio, importe) unidas por <code>factura_id</code>.</li>
+            <li><code>gastos.csv</code> — gastos con categoría, proveedor, fecha, trimestre y ruta del adjunto.</li>
+            <li><code>conceptos.csv</code> — libro de conceptos por trimestre (ingresos y gastos).</li>
+            <li><code>configuracion.csv</code> — datos del emisor y preferencias por defecto.</li>
+            <li><code>api_tokens.csv</code> — tokens con prefijo, fechas de uso y revocación (sin secretos).</li>
+            <li><code>README.txt</code> — descripción de columnas y fecha de generación.</li>
+          </ul>
+        </details>
+      </div>
     </div>`;
 
   // Métodos de cobro
@@ -137,6 +168,53 @@ export async function renderConfig(container) {
   renderTokens(tokens);
 
   document.getElementById("new-token").onclick = () => openCreateToken(container);
+
+  // Exportación completa
+  document.getElementById("export-data").onclick = async () => downloadExport();
+}
+
+async function downloadExport() {
+  try {
+    const token = api.getToken();
+    if (!token) {
+      toast("No hay sesión activa", "error");
+      return;
+    }
+    const btn = document.getElementById("export-data");
+    btn.disabled = true;
+    const original = btn.innerHTML;
+    btn.innerHTML = "Generando…";
+    const res = await fetch(api.base + "/export", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const blob = await res.blob();
+    const dispo = res.headers.get("content-disposition") || "";
+    const m = dispo.match(/filename="?([^";]+)"?/);
+    const filename = m ? m[1] : `faktu-export-${new Date().toISOString().slice(0, 10)}.zip`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast("Exportación lista", "success");
+  } catch (e) {
+    toast(`Error al exportar: ${e.message}`, "error");
+  } finally {
+    const btn = document.getElementById("export-data");
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="mr-1"><path d="M5 20h14v-2H5v2zm7-18a1 1 0 0 1 1 1v9.59l3.3-3.3 1.4 1.42-5.7 5.7-5.7-5.7 1.4-1.42 3.3 3.3V3a1 1 0 0 1 1-1z"/></svg>
+        Exportar ZIP
+      `;
+    }
+  }
 }
 
 function renderTokens(tokens) {
@@ -234,8 +312,8 @@ function showCreatedToken(created) {
         Por seguridad <strong>solo se muestra una vez</strong>. Pégalo donde lo necesites
         (Claude, scripts, Postman…) antes de cerrar esta ventana.
       </p>
-      <div class="mt-4 rounded-xl bg-slate-900 px-4 py-4 ring-1 ring-slate-700">
-        <p class="select-all break-all text-center font-mono text-base font-bold tracking-wider text-white sm:text-lg" id="tok-secret">${esc(created.token)}</p>
+      <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+        <p class="select-all break-all text-center font-mono text-base font-bold tracking-wider text-slate-900 sm:text-lg" id="tok-secret">${esc(created.token)}</p>
       </div>
       <div class="mt-3 flex flex-wrap items-center gap-2">
         <button class="btn-primary" id="tok-copy">${ICONS.copy} Copiar al portapapeles</button>
