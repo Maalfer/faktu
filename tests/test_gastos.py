@@ -112,3 +112,22 @@ async def test_dashboard(auth):
 
     r = await client.get("/api/v1/dashboard", headers=headers)
     assert r.json()["year"] == 2026  # el último año con datos
+
+async def test_archivo_conserva_nombre_original_y_no_es_publico(auth):
+    client, headers = auth
+    g = await crear_gasto(client, headers)
+    r = await client.post(
+        f"/api/v1/gastos/{g['id']}/archivo", headers=headers,
+        files={"archivo": ("2026-09-01 - Repsol - Gasolina.pdf", b"%PDF-1.4 prueba", "application/pdf")},
+    )
+    assert r.status_code == 200
+    assert r.json()["archivo_nombre"] == "2026-09-01 - Repsol - Gasolina.pdf"
+    r = await client.get(f"/api/v1/gastos/{g['id']}/archivo", headers=headers)
+    assert "2026-09-01" in r.headers["content-disposition"]
+    lst = await client.get("/api/v1/trimestres?year=2026", headers=headers)
+    gasto = next(x for q in lst.json()["trimestres"] for x in q["gastos"] if x["id"] == g["id"])
+    assert gasto["archivo_nombre"] == "2026-09-01 - Repsol - Gasolina.pdf"
+    # los adjuntos no se sirven como estáticos: /media/... cae en la SPA, no en el PDF
+    ruta = (await client.get(f"/api/v1/gastos/{g['id']}", headers=headers)).json()["archivo"]
+    pub = await client.get(f"/media/{ruta}")
+    assert not pub.content.startswith(b"%PDF")

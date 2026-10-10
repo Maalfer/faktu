@@ -136,3 +136,34 @@ def test_loader_seed_sin_fichero(tmp_path, monkeypatch):
 
     monkeypatch.setattr(sc, "_SEED_FILE", tmp_path / "no-existe.json")
     assert sc._load() == {}
+
+
+async def test_generar_desde_facturas_y_gastos(auth):
+    from tests.test_facturas import PAYLOAD
+    from tests.test_gastos import crear_gasto
+
+    client, headers = auth
+    r = await client.post("/api/v1/facturas", headers=headers, json={**PAYLOAD, "fecha_emision": "2026-08-03"})
+    assert r.status_code == 201, r.text
+    factura = r.json()
+    g = await crear_gasto(client, headers, fecha="2026-08-10", importe=12.5, concepto="Hosting agosto")
+
+    r = await client.post("/api/v1/conceptos/generar", headers=headers, json={"year": 2026, "trimestre": 3})
+    assert r.status_code == 200, r.text
+    assert r.json() == {"ingresos_nuevos": 1, "gastos_nuevos": 1}
+
+    # idempotente
+    r = await client.post("/api/v1/conceptos/generar", headers=headers, json={"year": 2026, "trimestre": 3})
+    assert r.json() == {"ingresos_nuevos": 0, "gastos_nuevos": 0}
+
+    r = await client.get("/api/v1/conceptos?year=2026", headers=headers)
+    t3 = next(q for q in r.json()["trimestres"] if q["num"] == 3)
+    assert t3["ingresos"][0]["factura_id"] == factura["id"]
+    assert float(t3["ingresos"][0]["importe"]) == float(factura["total"])
+    assert t3["gastos"][0]["concepto"] == "Hosting agosto"
+
+    # al borrar el gasto desaparece su concepto generado
+    await client.delete(f"/api/v1/gastos/{g['id']}", headers=headers)
+    r = await client.get("/api/v1/conceptos?year=2026", headers=headers)
+    t3 = next(q for q in r.json()["trimestres"] if q["num"] == 3)
+    assert t3["gastos"] == []

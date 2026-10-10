@@ -42,6 +42,12 @@ async def client():
 @pytest_asyncio.fixture
 async def auth(client) -> tuple[AsyncClient, dict]:
     """Cliente autenticado con un usuario recién creado por test."""
+    # El registro solo está abierto con la BD vacía: cada test parte de cero.
+    from sqlalchemy import text
+
+    async with engine.begin() as conn:
+        for table in ("lineas_factura", "facturas", "clientes", "gastos", "conceptos_trimestre", "config_autonomo", "api_tokens", "users"):
+            await conn.execute(text(f"DELETE FROM {table}"))
     email = f"user{uuid.uuid4().hex[:10]}@test.es"
     r = await client.post("/api/v1/auth/register", json={
         "email": email, "password": "clave-segura-123", "full_name": "Test User",

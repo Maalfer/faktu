@@ -1,18 +1,21 @@
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Body, HTTPException, Response, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession
-from app.api.routes.trimestres import get_quarter, quarter_order
+from app.api.routes.trimestres import get_quarter, quarter_order, quarter_range
 from app.core.config import settings
-from app.models import ConceptoTrimestre
+from app.models import ConceptoTrimestre, Factura, Gasto
 from app.schemas.concepto import (
     ConceptoCreate,
     ConceptoRead,
     ConceptoUpdate,
     ConceptosResponse,
+    GenerarPayload,
+    GenerarResponse,
     QuarterConceptos,
 )
 from app.services.excel import generar_excel_trimestres
@@ -144,6 +147,76 @@ async def create_concepto(payload: ConceptoCreate, user: CurrentUser, db: DbSess
     await db.commit()
     await db.refresh(c)
     return ConceptoRead.model_validate(c)
+
+
+@router.post("/generar", response_model=GenerarResponse)
+async def generar_conceptos(
+    user: CurrentUser,
+    db: DbSession,
+    payload: GenerarPayload = Body(...),
+) -> GenerarResponse:
+    """Rellena el libro de un trimestre a partir de las facturas emitidas y los gastos.
+
+    Es idempotente: solo añade lo que todavía no tiene su concepto vinculado
+    (``factura_id`` / ``gasto_id``). Los conceptos anotados a mano no se tocan.
+    Las facturas en borrador se ignoran. El importe es el total de la factura
+    (lo realmente cobrado) y el de cada gasto.
+    """
+    start, end = quarter_range(payload.year, payload.trimestre)
+
+    facturas = (await db.scalars(
+        select(Factura)
+        .options(selectinload(Factura.lineas))
+        .where(
+            Factura.user_id == user.id,
+            Factura.estado != "borrador",
+            Factura.fecha_emision >= start,
+            Factura.fecha_emision <= end,
+        )
+        .order_by(Factura.fecha_emision, Factura.id)
+    )).all()
+    gastos = (await db.scalars(
+        select(Gasto)
+        .where(Gasto.user_id == user.id, Gasto.fecha >= start, Gasto.fecha <= end)
+        .order_by(Gasto.fecha, Gasto.id)
+    )).all()
+
+    existentes = (await db.scalars(
+        select(ConceptoTrimestre).where(
+            ConceptoTrimestre.user_id == user.id,
+            ConceptoTrimestre.year == payload.year,
+            ConceptoTrimestre.trimestre == payload.trimestre,
+        )
+    )).all()
+    facturas_ok = {c.factura_id for c in existentes if c.factura_id}
+    gastos_ok = {c.gasto_id for c in existentes if c.gasto_id}
+    orden_ing = max((c.orden for c in existentes if c.tipo == "ingreso"), default=-1) + 1
+    orden_gas = max((c.orden for c in existentes if c.tipo == "gasto"), default=-1) + 1
+
+    nuevos_ing = nuevos_gas = 0
+    for f in facturas:
+        if f.id in facturas_ok or f.total <= 0:
+            continue
+        db.add(ConceptoTrimestre(
+            user_id=user.id, year=payload.year, trimestre=payload.trimestre, tipo="ingreso",
+            concepto=f"Factura {f.numero_completo} · {f.receptor_nombre}"[:300],
+            importe=f.total, iva=f.iva_porcentaje if f.iva_porcentaje > 0 else None,
+            orden=orden_ing, factura_id=f.id,
+        ))
+        orden_ing += 1
+        nuevos_ing += 1
+    for g in gastos:
+        if g.id in gastos_ok or g.importe <= 0:
+            continue
+        db.add(ConceptoTrimestre(
+            user_id=user.id, year=payload.year, trimestre=payload.trimestre, tipo="gasto",
+            concepto=g.concepto[:300], importe=g.importe, iva=None,
+            orden=orden_gas, gasto_id=g.id,
+        ))
+        orden_gas += 1
+        nuevos_gas += 1
+    await db.commit()
+    return GenerarResponse(ingresos_nuevos=nuevos_ing, gastos_nuevos=nuevos_gas)
 
 
 @router.get("/{concepto_id}", response_model=ConceptoRead)

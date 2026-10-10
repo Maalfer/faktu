@@ -83,11 +83,21 @@ export async function downloadFile(url, fallbackName = "descarga") {
   const blob = await res.blob();
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = fallbackName;
+  a.download = filenameFromDisposition(res.headers.get("content-disposition")) || fallbackName;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(a.href);
+}
+
+function filenameFromDisposition(header) {
+  if (!header) return null;
+  const star = /filename\*=(?:UTF-8|utf-8)''([^;]+)/.exec(header);
+  if (star) {
+    try { return decodeURIComponent(star[1].trim()); } catch { /* sigue */ }
+  }
+  const plain = /filename="?([^";]+)"?/.exec(header);
+  return plain ? plain[1].trim() : null;
 }
 
 export function downloadPdf(url, fallbackName = "descarga.pdf") {

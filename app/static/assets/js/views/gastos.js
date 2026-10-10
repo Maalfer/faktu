@@ -1,11 +1,14 @@
 // Vista de gastos: listado por trimestres + alta/edición + archivo adjunto.
 
-import { api, fileObjectUrl } from "../api.js";
+import { api, downloadFile } from "../api.js";
 import {
   closeModal, confirmAction, esc, fmtDate, fmtEUR, ICONS, openModal, quarterBadge, toast, todayISO,
 } from "../ui.js";
 
-const CATEGORIAS = ["Varios", "Material", "Transporte", "Hostelería", "Alojamiento", "Software", "Formación", "Mercadotecnia"];
+const CATEGORIAS = [
+  "Varios", "Material", "Transporte", "Hostelería", "Alojamiento", "Software", "Formación", "Mercadotecnia",
+  "Hosting", "Suministros", "Asesoría", "Equipamiento", "Comisiones",
+];
 
 export async function renderGastos(container) {
   container.innerHTML = `
@@ -58,12 +61,7 @@ async function loadGastos(container) {
   content.querySelectorAll("[data-file]").forEach((btn) =>
     btn.addEventListener("click", async () => {
       try {
-        const url = await fileObjectUrl(`/gastos/${btn.dataset.file}/archivo`);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "archivo";
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        await downloadFile(`/gastos/${btn.dataset.file}/archivo`, "archivo");
       } catch (e) {
         toast(e.message, "error");
       }
@@ -134,7 +132,7 @@ function gastoCard(g) {
           <p class="text-xs text-slate-400">${fmtDate(g.fecha)}</p>
         </div>
         <div class="flex items-center gap-1 opacity-60 transition group-hover:opacity-100">
-          ${g.archivo ? `<button class="icon-btn" data-file="${g.id}" title="Descargar archivo">${ICONS.download}</button>` : ""}
+          ${g.archivo ? `<button class="icon-btn" data-file="${g.id}" title="Descargar ${esc(g.archivo_nombre || "archivo")}">${ICONS.download}</button>` : ""}
           <button class="icon-btn" data-edit="${g.id}" title="Editar">${ICONS.edit}</button>
           <button class="icon-btn text-rose-500 hover:bg-rose-50 hover:text-rose-600" data-del="${g.id}" data-nombre="${esc(g.concepto)}" title="Eliminar">${ICONS.trash}</button>
         </div>
@@ -224,12 +222,7 @@ export async function openGastoForm(id = null) {
   document.querySelectorAll("[data-file]").forEach((btn) =>
     btn.addEventListener("click", async () => {
       try {
-        const url = await fileObjectUrl(`/gastos/${btn.dataset.file}/archivo`);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "archivo";
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        await downloadFile(`/gastos/${btn.dataset.file}/archivo`, "archivo");
       } catch (e) {
         toast(e.message, "error");
       }

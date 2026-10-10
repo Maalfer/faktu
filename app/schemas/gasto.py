@@ -50,6 +50,7 @@ class GastoRead(BaseModel):
     proveedor: str
     notas: str
     archivo: str | None = None
+    archivo_nombre: str | None = None
     trimestre: int
 
     model_config = {"from_attributes": True}
@@ -64,5 +65,7 @@ class GastoAnual(BaseModel):
     fecha: date
     importe: float
     proveedor: str
+    archivo: str | None = None
+    archivo_nombre: str | None = None
 
     model_config = {"from_attributes": True}

@@ -1,13 +1,14 @@
 import os
+import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.config import settings
-from app.models import Gasto
+from app.models import ConceptoTrimestre, Gasto
 from app.schemas.gasto import GastoCreate, GastoRead, GastoUpdate
 
 router = APIRouter(prefix="/gastos", tags=["gastos"])
@@ -78,6 +79,7 @@ async def delete_gasto(gasto_id: int, user: CurrentUser, db: DbSession) -> None:
             os.remove(settings.media_path / g.archivo)
         except OSError:
             pass
+    await db.execute(delete(ConceptoTrimestre).where(ConceptoTrimestre.gasto_id == g.id))
     await db.delete(g)
     await db.commit()
 
@@ -98,7 +100,7 @@ async def upload_archivo(
 
     settings.media_path.mkdir(parents=True, exist_ok=True)
     ext = os.path.splitext(archivo.filename or "foto.jpg")[1].lower() or ".jpg"
-    dest = Path(f"gastos/{g.id}-{abs(hash((user.id, g.id))):08x}{ext}")
+    dest = Path(f"gastos/{g.id}-{uuid.uuid4().hex}{ext}")
     full = settings.media_path / dest
     full.parent.mkdir(parents=True, exist_ok=True)
     content = await archivo.read()
@@ -106,6 +108,7 @@ async def upload_archivo(
         raise HTTPException(status_code=413, detail="El archivo supera el tamaño máximo")
     full.write_bytes(content)
     g.archivo = str(dest)
+    g.archivo_nombre = os.path.basename(archivo.filename or "") or f"gasto-{g.id}{ext}"
     await db.commit()
     await db.refresh(g)
     return GastoRead.model_validate(g)
@@ -119,4 +122,4 @@ async def descargar_archivo(gasto_id: int, user: CurrentUser, db: DbSession) -> 
     full = settings.media_path / g.archivo
     if not full.exists():
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
-    return FileResponse(full, filename=os.path.basename(g.archivo))
+    return FileResponse(full, filename=g.archivo_nombre or os.path.basename(g.archivo))

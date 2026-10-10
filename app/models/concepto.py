@@ -29,6 +29,10 @@ class ConceptoTrimestre(Base):
     # IVA como porcentaje (21.00 = 21 %). None equivale a "N/A" (p.ej. operaciones exentas).
     iva: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     orden: Mapped[int] = mapped_column(Integer, default=0)
+    notas: Mapped[str] = mapped_column(String(500), default="")
+    # Origen automático (botón «Generar desde facturas y gastos»); None = anotado a mano.
+    factura_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    gasto_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

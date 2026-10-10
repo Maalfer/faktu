@@ -18,13 +18,18 @@ CATEGORIAS_GASTO = (
     "Software",
     "Formación",
     "Mercadotecnia",
+    "Hosting",
+    "Suministros",
+    "Asesoría",
+    "Equipamiento",
+    "Comisiones",
 )
 
 
 def _gasto_upload_path(old: str, filename: str) -> str:
     """Ruta relativa del fichero adjunto de un gasto."""
     ext = os.path.splitext(filename)[1].lower() or ".jpg"
-    return f"gastos/{uuid.uuid4().hex[:12]}{ext}"
+    return f"gastos/{uuid.uuid4().hex}{ext}"
 
 
 class Gasto(Base):
@@ -42,6 +47,7 @@ class Gasto(Base):
     proveedor: Mapped[str] = mapped_column(String(200), default="")
     notas: Mapped[str] = mapped_column(String(500), default="")
     archivo: Mapped[str | None] = mapped_column(String(255), nullable=True)  # ruta relativa en media/
+    archivo_nombre: Mapped[str | None] = mapped_column(String(255), nullable=True)  # nombre original/legible
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

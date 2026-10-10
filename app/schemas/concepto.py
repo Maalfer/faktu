@@ -14,6 +14,7 @@ class ConceptoBase(BaseModel):
     importe: Decimal = Field(gt=0)
     iva: Decimal | None = Field(default=None, ge=0, le=100)
     orden: int = 0
+    notas: str = Field(default="", max_length=500)
 
     @field_validator("concepto")
     @classmethod
@@ -34,8 +35,20 @@ class ConceptoUpdate(ConceptoBase):
 
 class ConceptoRead(ConceptoBase):
     id: int
+    factura_id: int | None = None
+    gasto_id: int | None = None
 
     model_config = {"from_attributes": True}
+
+
+class GenerarPayload(BaseModel):
+    year: int = Field(ge=2000, le=2100)
+    trimestre: int = Field(ge=1, le=4)
+
+
+class GenerarResponse(BaseModel):
+    ingresos_nuevos: int
+    gastos_nuevos: int
 
 
 class QuarterConceptos(BaseModel):
