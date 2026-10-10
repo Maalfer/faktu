@@ -1,17 +1,41 @@
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models import User
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserRead
+from app.schemas.auth import (
+    LoginRequest,
+    RegisterRequest,
+    SignupAvailableResponse,
+    TokenResponse,
+    UserRead,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+async def _user_count(db: DbSession) -> int:
+    return int(await db.scalar(select(func.count()).select_from(User)) or 0)
+
+
+@router.get("/signup-available", response_model=SignupAvailableResponse)
+async def signup_available(db: DbSession) -> SignupAvailableResponse:
+    """Indica si aún se puede crear la primera cuenta. Solo disponible en BD vacía."""
+    count = await _user_count(db)
+    return SignupAvailableResponse(available=count == 0, user_count=count)
+
+
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, db: DbSession) -> TokenResponse:
+    """Alta de cuenta. Solo permitida si la BD está vacía (primer arranque)."""
+    if await _user_count(db) > 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El registro está cerrado. Esta aplicación admite un único usuario.",
+        )
+
     existing = await db.scalar(select(User).where(User.email == payload.email.lower()))
     if existing:
         raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese email")

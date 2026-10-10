@@ -3,11 +3,12 @@
 import { api } from "../api.js";
 import { esc } from "../ui.js";
 
-export function initAuth() {
+export async function initAuth() {
   const loginForm = document.getElementById("form-login");
   const registerForm = document.getElementById("form-register");
   const tabLogin = document.getElementById("tab-login");
   const tabRegister = document.getElementById("tab-register");
+  const tabsBox = tabLogin?.parentElement;
   const errorBox = document.getElementById("auth-error");
 
   function showError(msg) {
@@ -54,12 +55,21 @@ export function initAuth() {
     submit("/auth/register", registerForm);
   });
 
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Tab" && !e.shiftKey && tabRegister.className.includes("bg-white")) {
-      // fluent navigation sin perder el foco del formulario de registro
-    }
-  });
-
-  // Al iniciar la pantalla, autofoco en email
   setTimeout(() => document.getElementById("login-email")?.focus(), 80);
+
+  // Decide qué mostrar según si la BD ya tiene usuarios.
+  let signupOpen = false;
+  try {
+    const { available } = await api.get("/auth/signup-available");
+    signupOpen = available;
+  } catch (_) {
+    signupOpen = false;
+  }
+
+  if (!signupOpen) {
+    if (tabsBox) tabsBox.classList.add("hidden");
+    if (tabRegister) tabRegister.classList.add("hidden");
+    if (registerForm) registerForm.classList.add("hidden");
+    if (loginForm) loginForm.classList.remove("hidden");
+  }
 }

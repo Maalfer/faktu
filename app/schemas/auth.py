@@ -32,3 +32,10 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserRead
+
+
+class SignupAvailableResponse(BaseModel):
+    """`available` = True solo cuando la BD está vacía (primer arranque)."""
+
+    available: bool
+    user_count: int
