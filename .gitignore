@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Base de datos y archivos de usuario
+*.db
+*.sqlite3
+media/
+.env
+
+# Entorno
+node_modules/
+npm-debug.log*
+
+# Sistemas / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

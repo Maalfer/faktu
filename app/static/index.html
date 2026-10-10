@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="description" content="Faktu — gestión de facturas y gastos para autónomos, por trimestres">
+  <title>Faktu · Facturas y gastos</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%234f46e5'/%3E%3Ctext x='50' y='68' font-size='52' font-family='Arial' font-weight='bold' text-anchor='middle' fill='white'%3EF%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body class="bg-slate-50">
+
+  <!-- ══════════ LOGIN / REGISTRO ══════════ -->
+  <div id="auth-screen" class="hidden min-h-dvh">
+    <div class="relative flex min-h-dvh items-center justify-center overflow-hidden bg-brand-950 px-4 py-10"
+         style="background: radial-gradient(1200px 600px at 20% -10%, #6366f1 0%, transparent 55%),
+                         radial-gradient(1000px 500px at 110% 110%, #8b5cf6 0%, transparent 50%),
+                         linear-gradient(160deg, #312e81 0%, #1e1b4b 60%, #0f172a 100%);">
+      <div class="pointer-events-none absolute inset-0 opacity-20"
+           style="background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.6) 1px, transparent 0); background-size: 26px 26px;"></div>
+
+      <div class="relative w-full max-w-md animate-fadeUp">
+        <div class="mb-8 text-center">
+          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10 ring-1 ring-white/20 backdrop-blur">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" class="text-white">
+              <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M8 13h8M8 17h5M14 2v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h1 class="text-3xl font-extrabold tracking-tight text-white">Faktu</h1>
+          <p class="mt-2 text-sm text-indigo-200">Tus facturas y gastos por trimestres, sin complicaciones.</p>
+        </div>
+
+        <div class="rounded-3xl bg-white/95 p-6 shadow-2xl ring-1 ring-white/40 backdrop-blur sm:p-8">
+          <div class="mb-6 flex rounded-2xl bg-slate-100 p-1 text-sm font-semibold">
+            <button id="tab-login" class="flex-1 rounded-xl bg-white py-2 text-slate-800 shadow-sm transition">Entrar</button>
+            <button id="tab-register" class="flex-1 rounded-xl py-2 text-slate-500 transition hover:text-slate-700">Crear cuenta</button>
+          </div>
+
+          <!-- Login -->
+          <form id="form-login" class="space-y-4">
+            <div>
+              <label class="label" for="login-email">Email</label>
+              <input id="login-email" class="input" type="email" required autocomplete="email" placeholder="tu@email.com">
+            </div>
+            <div>
+              <label class="label" for="login-pass">Contraseña</label>
+              <input id="login-pass" class="input" type="password" required autocomplete="current-password" placeholder="••••••••">
+            </div>
+            <button class="btn-primary w-full py-3" type="submit">Entrar</button>
+          </form>
+
+          <!-- Registro -->
+          <form id="form-register" class="hidden space-y-4">
+            <div>
+              <label class="label" for="reg-name">Nombre</label>
+              <input id="reg-name" class="input" type="text" maxlength="120" placeholder="Tu nombre o empresa">
+            </div>
+            <div>
+              <label class="label" for="reg-email">Email</label>
+              <input id="reg-email" class="input" type="email" required placeholder="tu@email.com">
+            </div>
+            <div>
+              <label class="label" for="reg-pass">Contraseña (mín. 8 caracteres)</label>
+              <input id="reg-pass" class="input" type="password" required minlength="8" autocomplete="new-password" placeholder="••••••••">
+            </div>
+            <button class="btn-primary w-full py-3" type="submit">Crear mi cuenta</button>
+          </form>
+
+          <p id="auth-error" class="mt-4 hidden rounded-xl bg-rose-50 px-3 py-2 text-center text-sm font-medium text-rose-600"></p>
+        </div>
+
+        <p class="mt-6 text-center text-xs text-indigo-300/80">Vanilla · FastAPI · SQLAlchemy · Alembic · Tailwind</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ APP ══════════ -->
+  <div id="app" class="hidden">
+    <div class="mx-auto flex max-w-7xl">
+
+      <!-- Sidebar escritorio -->
+      <aside class="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-slate-900 md:flex">
+        <div class="flex items-center gap-3 px-6 py-6">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 shadow-lg shadow-brand-600/30">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-white">
+              <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M8 13h8M8 17h5M14 2v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span class="text-lg font-extrabold tracking-tight text-white">Faktu</span>
+        </div>
+
+        <nav id="side-nav" class="flex-1 space-y-1 px-3"></nav>
+
+        <div class="border-t border-white/10 px-6 py-5">
+          <p id="side-user" class="mb-2 truncate text-sm font-semibold text-white"></p>
+          <button id="logout-btn" class="flex w-full items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-white">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+            Cerrar sesión
+          </button>
+        </div>
+      </aside>
+
+      <!-- Contenido -->
+      <div class="min-w-0 flex-1">
+        <!-- Topbar móvil -->
+        <header class="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/80 bg-white/80 px-4 py-3 backdrop-blur md:hidden">
+          <div class="flex items-center gap-2">
+            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="text-white">
+                <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span id="mobile-title" class="text-base font-extrabold tracking-tight text-slate-900">Faktu</span>
+          </div>
+          <button id="user-menu-btn" class="icon-btn" aria-label="Menú de usuario">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </button>
+        </header>
+
+        <main id="view" class="mx-auto w-full px-4 py-6 md:max-w-5xl md:px-8 md:py-8 pb-28 md:pb-10"></main>
+      </div>
+
+      <!-- Bottom nav móvil -->
+      <div class="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
+        <nav id="mobile-nav" class="flex w-full"></nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botón flotante -->
+  <button id="fab" class="fab" aria-label="Acción principal">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  </button>
+
+  <!-- Modal -->
+  <div id="modal-root" class="fixed inset-0 z-40 hidden items-end justify-center sm:items-center">
+    <div id="modal-backdrop" class="modal-backdrop absolute inset-0 bg-slate-900/50"></div>
+    <div id="modal-panel" class="relative z-10 max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-white shadow-2xl animate-fadeUp sm:mx-4 sm:max-w-2xl sm:rounded-3xl"></div>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toast-root" class="fixed inset-x-0 bottom-20 z-50 flex flex-col items-center gap-2 px-4 sm:bottom-8"></div>
+
+  <script type="module" src="/assets/js/app.js"></script>
+</body>
+</html>

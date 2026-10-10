@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ──────────────────────────────────────────────────────────────── */
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+body { @apply bg-slate-50 text-slate-800 font-sans; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-slate-400; }
+
+/* ── Componentes ───────────────────────────────────────────────────────── */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700 shadow-sm active:scale-[.98]; }
+  .btn-ghost  { @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200; }
+  .btn-danger { @apply btn bg-rose-600 text-white hover:bg-rose-700; }
+  .btn-soft   { @apply btn bg-brand-50 text-brand-700 hover:bg-brand-100 ring-1 ring-brand-100; }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400
+           transition focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10;
+  }
+  .label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500; }
+
+  .card { @apply bg-white rounded-2xl shadow-card ring-1 ring-slate-900/5; }
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold; }
+  .badge-pagada   { @apply bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200; }
+  .badge-emitida  { @apply bg-sky-50 text-sky-700 ring-1 ring-sky-200; }
+  .badge-borrador { @apply bg-slate-100 text-slate-600 ring-1 ring-slate-200; }
+  .badge-current  { @apply bg-brand-50 text-brand-700 ring-1 ring-brand-200; }
+  .badge-future   { @apply bg-amber-50 text-amber-700 ring-1 ring-amber-200; }
+  .badge-past     { @apply bg-slate-100 text-slate-600 ring-1 ring-slate-200; }
+
+  .nav-item { @apply flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-300
+                     transition hover:bg-white/10 hover:text-white; }
+  .nav-item-active { @apply bg-white/10 text-white shadow-inner; }
+  .nav-item-mobile { @apply flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold text-slate-400 transition; }
+  .nav-item-mobile-active { @apply text-brand-600; }
+}
+
+/* ── Animaciones extras ────────────────────────────────────────────────── */
+.icon-btn {
+  @apply inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition
+         hover:bg-slate-100 hover:text-slate-800;
+}
+
+.modal-backdrop { backdrop-filter: blur(4px); }
+
+.quarter-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s ease; }
+.quarter-body.open { grid-template-rows: 1fr; }
+.quarter-body > div { overflow: hidden; }
+
+/* Botón flotante (móvil) */
+.fab {
+  @apply fixed z-30 bottom-20 right-4 h-14 w-14 items-center justify-center rounded-2xl bg-brand-600
+         text-white shadow-lg shadow-brand-600/30 transition hover:bg-brand-700 active:scale-95 md:hidden;
+  display: none;
+}
+body.show-fab .fab { display: inline-flex; }

@@ -1,0 +1,13 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+*.db
+*.sqlite3
+media
+.pytest_cache
+.env
+tests
+nohup.out
+*.log
