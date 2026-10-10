@@ -2,41 +2,35 @@
 
 # Faktu
 
+![Vista principal](docs/screenshots/01-portada.png)
+
 Gestión de **facturas** y **gastos** para autónomos, organizados por
 trimestres y listos para presentar el modelo 303/130. SPA en español,
 responsive (escritorio y móvil).
-
-## Capturas
-
-| | |
-|---|---|
-| ![Vista principal](docs/screenshots/01-portada.png) | ![Facturas](docs/screenshots/02-facturas.png) |
-| ![Trimestres](docs/screenshots/03-trimestres.png) | ![Clientes](docs/screenshots/04-clientes.png) |
-
-Generadas desde la cuenta de demo que crea `scripts/seed_demo.py`
-(`demo@faktu.app` / `demo1234`).
-
-## Token de API y exportación
-
-| | |
-|---|---|
-| ![Creación del token](docs/screenshots/05-token-api.png) | ![IA usando el token](docs/screenshots/06-token-claude.png) |
-| *Token de API desde Ajustes → Token API / IA* | *Claude u otra IA operando la cuenta con el token* |
-| ![Documentación Swagger](docs/screenshots/07-api-docs.png) | ![Exportación ZIP de CSVs](docs/screenshots/08-backup-csv.png) |
-| *Documentación interactiva en `/docs`* | *Exportación del 100% de los datos en un ZIP de CSVs* |
 
 ## Funcionalidades
 
 - Autenticación con JWT, multi-cuenta y datos aislados por usuario.
 - Facturas con líneas, IVA e IRPF configurables, total en vivo, PDF al vuelo.
+
+  ![Listado y edición de facturas](docs/screenshots/02-facturas.png)
+
 - Numeración automática por año (`01/2026`, `02/2026`…).
 - Gastos con categoría, proveedor y adjunto (descarga autenticada).
 - Vista por trimestres: actual primero, pasados después, futuros al final.
+
+  ![Trimestres con totales](docs/screenshots/03-trimestres.png)
+
 - Libro de conceptos por trimestre con exportación a Excel.
 - Dashboard anual con KPIs, gráfico por trimestres y actividad reciente.
 - Clientes con total facturado acumulado y vínculo directo a la factura.
+
+  ![Gestión de clientes](docs/screenshots/04-clientes.png)
+
 - Configuración del emisor para autocompletar datos en cada factura.
 - Token de API personal para integrar con IAs (Claude, scripts, Postman…).
+- Exportación del 100% de los datos a un ZIP de CSVs (clientes, facturas con
+  líneas, gastos, conceptos, configuración, tokens sin secretos).
 
 **Stack**: FastAPI · SQLAlchemy 2 (async) · Pydantic v2 · Alembic · PyJWT · bcrypt · Reportlab · SQLite (cambiable a Postgres).
 
@@ -96,21 +90,48 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-## API y token para IAs
+## API, token para IAs y exportación de datos
 
-La API REST vive bajo `/api/v1` y está documentada en `/docs` (Swagger) y
-`/redoc`.
+### Documentación interactiva
+
+Toda la API REST vive bajo `/api/v1` y se documenta sola en Swagger:
+`/docs` y `/redoc`.
+
+![Documentación Swagger](docs/screenshots/07-api-docs.png)
+
+### Token de API para IAs
 
 En **Ajustes → Token API / IA** se generan tokens personales
 (`fkt_<prefijo>_<secreto>`) con los mismos permisos que tu sesión. Se muestran
-una sola vez y se pueden revocar individualmente. Uso:
+una sola vez y se pueden revocar individualmente. Son ideales para que Claude,
+Cursor, un script propio o Postman operen la cuenta.
+
+![Alta del token en Ajustes](docs/screenshots/05-token-api.png)
+
+Uso:
 
 ```bash
 curl https://tu-dominio/api/v1/facturas \
      -H "Authorization: Bearer fkt_<prefijo>_<secreto>"
 ```
 
-Endpoints: `GET/POST /api/v1/api-tokens`, `DELETE /api/v1/api-tokens/{id}`.
+![Asistente operando la cuenta con el token](docs/screenshots/06-token-claude.png)
+
+Endpoints: `GET /api/v1/auth/me`, `GET/POST /api/v1/api-tokens`,
+`DELETE /api/v1/api-tokens/{id}` y el resto del CRUD habitual
+(`/facturas`, `/gastos`, `/clientes`, `/trimestres`, …).
+
+### Exportar el 100% de tus datos
+
+En **Ajustes → Exportar todos mis datos (CSV)** se genera un ZIP con un CSV
+por tabla (clientes, facturas, líneas, gastos, conceptos, configuración y
+tokens sin secretos) en UTF-8 con BOM para que Excel, Numbers y Google Sheets
+lo abran sin perder tildes. Útil para copias de seguridad o para migrar a
+otra herramienta.
+
+![Exportación del ZIP de CSVs](docs/screenshots/08-backup-csv.png)
+
+Endpoint: `GET /api/v1/export` (autenticado) — devuelve `faktu-export-YYYYMMDD-HHMMSS.zip`.
 
 ## Estructura
 
@@ -120,8 +141,8 @@ app/
   core/              # config, db, seguridad, dependencias
   models/            # ORM (User, Cliente, Factura, Linea, Gasto, Config, ApiToken, Concepto)
   schemas/           # Pydantic v2
-  api/routes/        # auth, clientes, facturas, gastos, trimestres, conceptos, dashboard, api-tokens, version
-  services/          # numeración, PDF, Excel, seeding
+  api/routes/        # auth, clientes, facturas, gastos, trimestres, conceptos, dashboard, api-tokens, version, export
+  services/          # numeración, PDF, Excel, seeding, exportación ZIP
   static/            # SPA estática (HTML/CSS/JS)
 alembic/             # migraciones
 scripts/             # seed_demo.py y otros
