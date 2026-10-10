@@ -146,7 +146,7 @@ function facturaCard(f) {
         </div>
         <span class="badge badge-current hidden sm:inline-flex">T${trimetreFrom(f.fecha_emision)}</span>
       </div>
-      <p class="mt-2 truncate text-sm font-medium text-slate-600">${esc(f.receptor_nombre)}</p>
+      <p class="mt-2 flex items-center gap-2 truncate text-sm font-medium text-slate-600">${esc(f.receptor_nombre)}${f.sin_cliente ? `<span class="badge bg-slate-100 text-slate-500" title="Ingreso sin factura a un cliente">sin cliente</span>` : ""}</p>
       <p class="text-xs text-slate-400">${fmtDate(f.fecha_emision)}</p>
       <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
         <strong class="text-base font-extrabold text-slate-900">${fmtEUR(f.total)}</strong>
@@ -200,13 +200,15 @@ async function getPdf(id, num) {
 let facturaCache = null; // para no recargar datos en cada edición
 
 export async function openFacturaForm(id = null) {
-  facturaCache = { config: null, clientes: [], factura: null, nextNumero: "" };
-  const [config, clientes] = await Promise.all([
+  facturaCache = { config: null, clientes: [], factura: null, nextNumero: "", origenes: [], year: new Date().getFullYear() };
+  const [config, clientes, todas] = await Promise.all([
     api.get("/config"),
     api.get("/clientes"),
+    api.get("/facturas"),
   ]);
   facturaCache.config = config;
   facturaCache.clientes = clientes;
+  facturaCache.origenes = [...new Set(todas.filter((x) => x.sin_cliente).map((x) => x.receptor_nombre))];
 
   if (id) {
     facturaCache.factura = await api.get(`/facturas/${id}`);
@@ -233,11 +235,12 @@ function renderFacturaForm() {
 
   const emisor = f || cfg;
   const receptor = f || {};
+  const sinCliente = !!f?.sin_cliente;
 
   openModal(`
     <div class="p-5 sm:p-7">
       <div class="mb-6 flex items-center justify-between">
-        <h2 class="text-xl font-extrabold text-slate-900">${f ? "Editar factura" : "Nueva factura"}</h2>
+        <h2 class="text-xl font-extrabold text-slate-900">${f ? (f.sin_cliente ? "Editar ingreso" : "Editar factura") : "Nueva factura"}</h2>
         <button class="icon-btn" onclick="window.__closeModal()">✕</button>
       </div>
 
@@ -277,20 +280,27 @@ function renderFacturaForm() {
           </div>
         </section>
 
+        <!-- Tipo de ingreso -->
+        <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          <input type="checkbox" name="sin_cliente" id="sin-cliente" class="mt-0.5 h-4 w-4 rounded border-slate-300" ${sinCliente ? "checked" : ""}>
+          <span><strong>Ingreso sin cliente</strong> (Skool, ventas de la academia…)<br>
+            <span class="text-xs text-slate-500">No se piden datos del cliente: solo el origen del ingreso. Lleva su propia numeración (V-) y no altera la de tus facturas.</span></span>
+        </label>
+
         <!-- Cliente / receptor -->
-        <section class="space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold uppercase tracking-wide text-brand-600">Cliente / Receptor</h3>
+        <section class="space-y-3" id="sec-cliente">
+          <div class="flex items-center justify-between" id="cliente-head">
+            <h3 class="text-sm font-bold uppercase tracking-wide text-brand-600" id="receptor-titulo">Cliente / Receptor</h3>
             ${c.clientes.length ? `<label class="text-xs font-semibold text-slate-500">Cliente guardado:
               <select class="input mt-1 !w-auto" id="cliente-select">
                 <option value="">— Elegir cliente —</option>${clienteOptions}
               </select></label>` : ""}
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
-            <div><label class="label">Nombre / Empresa *</label><input class="input" name="receptor_nombre" required value="${esc(receptor.receptor_nombre || "")}"></div>
-            <div><label class="label">NIF / CIF</label><input class="input" name="receptor_nif" value="${esc(receptor.receptor_nif || "")}"></div>
+            <div><label class="label" id="receptor-label">Nombre / Empresa *</label><input class="input" name="receptor_nombre" required list="origenes-list" value="${esc(receptor.receptor_nombre || "")}"><datalist id="origenes-list">${c.origenes.map((o) => `<option value="${esc(o)}">`).join("")}</datalist></div>
+            <div class="receptor-fiscal"><label class="label">NIF / CIF</label><input class="input" name="receptor_nif" value="${esc(receptor.receptor_nif || "")}"></div>
           </div>
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-4 sm:grid-cols-2 receptor-fiscal">
             <div><label class="label">Dirección</label><input class="input" name="receptor_direccion" value="${esc(receptor.receptor_direccion || "")}"></div>
             <div class="grid grid-cols-2 gap-4">
               <div><label class="label">CP</label><input class="input" name="receptor_cp" value="${esc(receptor.receptor_cp || "")}"></div>
@@ -303,6 +313,10 @@ function renderFacturaForm() {
         <section>
           <h3 class="text-sm font-bold uppercase tracking-wide text-brand-600">Líneas</h3>
           <div id="lineas-wrapper" class="mt-3 space-y-2"></div>
+          <label id="total-cobrado-wrap" class="mt-3 flex items-center gap-2 text-sm text-slate-700" style="display:none">
+            <input type="checkbox" name="total_cobrado" id="total-cobrado" class="h-4 w-4 rounded border-slate-300" ${f ? "" : "checked"}>
+            El precio de cada línea es el <strong>total cobrado (IVA incluido)</strong>; Faktu calcula la base.
+          </label>
           <button type="button" id="add-linea" class="btn-soft mt-3">${ICONS.plus} Añadir línea</button>
           <div class="mt-4 ml-auto w-full max-w-xs space-y-1 rounded-2xl bg-slate-50 p-4 text-sm">
             <div class="flex justify-between text-slate-500"><span>Base imponible</span><strong id="sum-base">0,00 €</strong></div>
@@ -379,9 +393,30 @@ function renderFacturaForm() {
   const form = document.getElementById("factura-form");
   form.addEventListener("submit", submitFactura);
 
+  // Ingreso sin cliente: oculta datos fiscales, usa serie propia y precios con IVA incluido
+  const chk = document.getElementById("sin-cliente");
+  const aplicarTipo = async (cambio) => {
+    const on = chk.checked;
+    document.getElementById("receptor-titulo").textContent = on ? "Origen del ingreso" : "Cliente / Receptor";
+    document.getElementById("receptor-label").textContent = on ? "Origen *  (p.ej. Skool, Academia · Alumnos España)" : "Nombre / Empresa *";
+    document.querySelectorAll(".receptor-fiscal, #cliente-head select, #cliente-head label").forEach((el) => { el.style.display = on ? "none" : ""; });
+    document.getElementById("total-cobrado-wrap").style.display = on ? "flex" : "none";
+    if (on && cambio) form.elements.irpf_porcentaje.value = 0;
+    if (cambio && !facturaCache.factura) {
+      const nn = await api.get(`/facturas/next-numero?year=${facturaCache.year}&sin_cliente=${on}`);
+      form.elements.numero.value = nn.numero;
+      form.elements.serie.value = on ? nn.serie : (facturaCache.config.serie_por_defecto || "");
+      if (on) form.elements.estado.value = "pagada";
+    }
+    updateTotals();
+  };
+  chk.addEventListener("change", () => aplicarTipo(true));
+  aplicarTipo(false);
+
   // Recalcula totales en vivo
+  form.addEventListener("change", (e) => { if (e.target.name === "total_cobrado") updateTotals(); });
   form.addEventListener("input", (e) => {
-    if (["iva_porcentaje", "irpf_porcentaje"].includes(e.target.name)) updateTotals();
+    if (["iva_porcentaje", "irpf_porcentaje", "total_cobrado"].includes(e.target.name)) updateTotals();
   });
   updateTotals();
 }
@@ -423,6 +458,19 @@ function getLineas() {
     .filter((l) => l.concepto && l.cantidad > 0);
 }
 
+function baseDesdeTotal(total, ivaPct) {
+  if (!ivaPct) return total;
+  const b = Math.round((total / (1 + ivaPct / 100)) * 100);
+  let mejor = b, dif = Infinity;
+  for (let d = -2; d <= 2; d++) {
+    const base = b + d;
+    const t = base + Math.round(base * ivaPct / 100);
+    const e = Math.abs(t - Math.round(total * 100));
+    if (e < dif) { dif = e; mejor = base; }
+  }
+  return mejor / 100;
+}
+
 function updateTotals() {
   const iva = parseFloat(document.getElementById("factura-form").elements["iva_porcentaje"].value) || 0;
   const irpf = parseFloat(document.getElementById("factura-form").elements["irpf_porcentaje"].value) || 0;
@@ -437,6 +485,17 @@ function updateTotals() {
     r.querySelector(".l-importe").textContent = fmtEUR(imp);
   });
 
+  const f_ = document.getElementById("factura-form").elements;
+  if (f_.sin_cliente?.checked && f_.total_cobrado?.checked && iva) {
+    const total = base;
+    base = rows.reduce((s, r) => s + baseDesdeTotal((parseFloat(r.querySelector('[name="l-cantidad"]').value) || 0) * (parseFloat(r.querySelector('[name="l-precio"]').value) || 0), iva), 0);
+    document.getElementById("sum-base").textContent = fmtEUR(base);
+    document.getElementById("label-iva").textContent = `IVA (${fmtNum(iva)}%)`;
+    document.getElementById("sum-iva").textContent = fmtEUR(total - base);
+    document.getElementById("irpf-row").style.display = "none";
+    document.getElementById("sum-total").textContent = fmtEUR(total);
+    return;
+  }
   const cuotaIva = base * iva / 100;
   const cuotaIrpf = base * irpf / 100;
   document.getElementById("sum-base").textContent = fmtEUR(base);
@@ -452,7 +511,13 @@ function updateTotals() {
 async function submitFactura(e) {
   e.preventDefault();
   const form = e.target;
-  const lineas = getLineas();
+  let lineas = getLineas();
+  const sinCli = form.elements.sin_cliente.checked;
+  if (sinCli && form.elements.total_cobrado.checked) {
+    // los precios son totales cobrados: base tal que base + IVA redondeado = total (≤ 1 cént.)
+    const iva = parseFloat(form.elements.iva_porcentaje.value) || 0;
+    lineas = lineas.map((l) => ({ ...l, precio_unitario: baseDesdeTotal(l.precio_unitario, iva) }));
+  }
   if (lineas.length === 0) {
     toastSimple("Añade al menos una línea con concepto e importe", true);
     return;
@@ -462,7 +527,8 @@ async function submitFactura(e) {
     numero: form.elements.numero.value.trim(),
     serie: form.elements.serie.value.trim(),
     fecha_emision: form.elements.fecha_emision.value,
-    cliente_id: document.getElementById("cliente-select")?.value ? Number(document.getElementById("cliente-select").value) : null,
+    sin_cliente: form.elements.sin_cliente.checked,
+    cliente_id: !form.elements.sin_cliente.checked && document.getElementById("cliente-select")?.value ? Number(document.getElementById("cliente-select").value) : null,
     estado: form.elements.estado.value,
     iva_porcentaje: parseFloat(form.elements.iva_porcentaje.value) || 0,
     irpf_porcentaje: parseFloat(form.elements.irpf_porcentaje.value) || 0,

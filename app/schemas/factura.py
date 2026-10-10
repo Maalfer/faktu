@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.cliente import ClienteRead
 
@@ -43,6 +43,8 @@ class FacturaBase(BaseModel):
     serie: str = Field(default="", max_length=20)
     fecha_emision: date
     cliente_id: int | None = None
+    # True: ingreso sin factura a un cliente; receptor_nombre es el origen (Skool, Academia…)
+    sin_cliente: bool = False
 
     emisor_nombre: str = Field(min_length=1, max_length=200)
     emisor_nif: str = Field(min_length=1, max_length=30)
@@ -72,6 +74,16 @@ class FacturaBase(BaseModel):
     _emisor = field_validator("emisor_nombre", "emisor_nif")(_check_nombre)
     _receptor = field_validator("receptor_nombre")(_check_nombre)
 
+    @model_validator(mode="after")
+    def _sin_cliente(self):
+        """Un ingreso sin cliente no lleva datos fiscales del receptor ni cliente vinculado."""
+        if self.sin_cliente:
+            self.cliente_id = None
+            self.irpf_porcentaje = Decimal("0")
+            for campo in ("nif", "direccion", "cp", "ciudad", "provincia"):
+                setattr(self, f"receptor_{campo}", "")
+        return self
+
 
 class FacturaCreate(FacturaBase):
     pass
@@ -86,6 +98,7 @@ class FacturaRead(BaseModel):
     numero: str
     serie: str
     numero_completo: str
+    sin_cliente: bool = False
     fecha_emision: date
     estado: EstadoFactura
     cliente_id: int | None
@@ -112,6 +125,7 @@ class FacturaListItem(BaseModel):
     numero_completo: str
     numero: str
     serie: str
+    sin_cliente: bool = False
     fecha_emision: date
     estado: EstadoFactura
     receptor_nombre: str

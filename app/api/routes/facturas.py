@@ -23,6 +23,8 @@ from app.services.pdf import generar_pdf_factura
 
 router = APIRouter(prefix="/facturas", tags=["facturas"])
 
+SERIE_SIN_CLIENTE = "V-"
+
 
 def _load_options():
     return (
@@ -46,7 +48,7 @@ async def _get_owned(db: DbSession, user_id: int, factura_id: int) -> Factura:
 async def _apply_payload(db: DbSession, factura: Factura, payload: FacturaCreate | FacturaUpdate, user_id: int) -> None:
     data = payload.model_dump(exclude={"lineas"})
 
-    if payload.cliente_id is not None:
+    if payload.cliente_id is not None and not payload.sin_cliente:
         k = await db.get(Cliente, payload.cliente_id)
         if not k or k.user_id != user_id:
             raise HTTPException(status_code=422, detail="Cliente no válido")
@@ -98,7 +100,9 @@ async def descargar_zip_trimestre(
     usados: set[str] = set()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
         for f in facturas:
-            base = re.sub(r'[\\/:*?"<>|]+', "-", f"Factura {f.numero_completo} - {f.receptor_nombre}").strip()[:120]
+            base = re.sub(r'[\\/:*?"<>|]+', "-", f"{'Ingreso' if f.sin_cliente else 'Factura'} {f.numero_completo} - {f.receptor_nombre}").strip()[:120]
+            if f.sin_cliente:
+                base = f"Ingresos sin factura/{base}"
             nombre, n = f"{base}.pdf", 2
             while nombre in usados:
                 nombre, n = f"{base} ({n}).pdf", n + 1
@@ -112,10 +116,14 @@ async def descargar_zip_trimestre(
 
 
 @router.get("/next-numero", response_model=NextNumeroResponse)
-async def get_next_numero(user: CurrentUser, db: DbSession, year: int) -> NextNumeroResponse:
-    """Siguiente número disponible para el año indicado."""
-    numero = await next_numero(db, user.id, year)
-    return NextNumeroResponse(numero=numero, serie="")  # la serie se decide al crear
+async def get_next_numero(
+    user: CurrentUser, db: DbSession, year: int, sin_cliente: bool = False
+) -> NextNumeroResponse:
+    """Siguiente número disponible. Los ingresos sin cliente llevan su propia serie (V-)
+    para no alterar la numeración correlativa de las facturas reales."""
+    serie = SERIE_SIN_CLIENTE if sin_cliente else ""
+    numero = await next_numero(db, user.id, year, serie)
+    return NextNumeroResponse(numero=numero, serie=serie)
 
 
 @router.get("", response_model=list[FacturaListItem])

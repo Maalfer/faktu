@@ -34,7 +34,7 @@ CLIENTES_HEADER = [
 ]
 
 FACTURAS_HEADER = [
-    "id", "numero", "serie", "numero_completo", "fecha_emision", "estado",
+    "id", "numero", "serie", "numero_completo", "sin_cliente", "fecha_emision", "estado",
     "metodo_cobro", "cliente_id", "cliente_nombre",
     "emisor_nombre", "emisor_nif", "emisor_direccion", "emisor_cp",
     "emisor_ciudad", "emisor_provincia", "emisor_pais",
@@ -189,7 +189,7 @@ async def build_export_zip(db: AsyncSession, user_id: int) -> bytes:
 
     facturas_rows = [
         {
-            "id": f.id, "numero": f.numero, "serie": f.serie,
+            "id": f.id, "numero": f.numero, "serie": f.serie, "sin_cliente": f.sin_cliente,
             "numero_completo": f.numero_completo,
             "fecha_emision": f.fecha_emision, "estado": f.estado,
             "metodo_cobro": f.metodo_cobro,

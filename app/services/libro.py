@@ -57,7 +57,7 @@ async def build_libro(db, user_id: int, year: int | None) -> ConceptosResponse:
         ingresos = [
             _auto_concepto(
                 year=year, trimestre=q, tipo="ingreso", origen="factura", ref_id=f.id,
-                concepto=f"Factura {f.numero_completo} · {f.receptor_nombre}"[:300],
+                concepto=f"{'Ingreso' if f.sin_cliente else 'Factura'} {f.numero_completo} · {f.receptor_nombre}"[:300],
                 importe=f.total, iva=f.iva_porcentaje if f.iva_porcentaje > 0 else None,
             )
             for f in facturas

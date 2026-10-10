@@ -150,3 +150,27 @@ async def test_numero_repetido_se_rechaza(auth):
     assert r.status_code == 201, r.text
     r = await client.post("/api/v1/facturas", headers=headers, json={**PAYLOAD, "numero": "05/2026"})
     assert r.status_code == 409
+
+
+async def test_ingreso_sin_cliente(auth):
+    import io, zipfile
+
+    client, headers = auth
+    r = await client.get("/api/v1/facturas/next-numero?year=2026&sin_cliente=true", headers=headers)
+    assert r.json() == {"numero": "01/2026", "serie": "V-"}
+    r = await client.post("/api/v1/facturas", headers=headers, json={
+        **PAYLOAD, "numero": "01/2026", "serie": "V-", "sin_cliente": True, "fecha_emision": "2026-09-30",
+        "receptor_nombre": "Skool", "receptor_nif": "X123", "receptor_direccion": "no debe guardarse",
+        "iva_porcentaje": 0, "irpf_porcentaje": 15, "estado": "pagada",
+    })
+    assert r.status_code == 201, r.text
+    f = r.json()
+    assert f["sin_cliente"] is True and f["numero_completo"] == "V-01/2026" and float(f["cuota_irpf"]) == 0.0
+    assert f["cliente_id"] is None and f["receptor_nombre"] == "Skool"
+    # su numeración no interfiere con la de las facturas reales
+    r = await client.get("/api/v1/facturas/next-numero?year=2026", headers=headers)
+    assert r.json()["numero"] == "01/2026" and r.json()["serie"] == ""
+    pdf = await client.get(f"/api/v1/facturas/{f['id']}/pdf", headers=headers)
+    assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF")
+    z = await client.get("/api/v1/facturas/zip?year=2026&trimestre=3", headers=headers)
+    assert any(n.startswith("Ingresos sin factura/") for n in zipfile.ZipFile(io.BytesIO(z.content)).namelist())

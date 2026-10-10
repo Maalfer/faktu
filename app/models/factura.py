@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, false, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -17,6 +17,9 @@ class Factura(Base):
     cliente_id: Mapped[int | None] = mapped_column(
         ForeignKey("clientes.id", ondelete="SET NULL"), nullable=True
     )
+
+    # Ingreso sin factura a un cliente (Skool, ventas de la academia…): receptor = origen del ingreso
+    sin_cliente: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
 
     numero: Mapped[str] = mapped_column(String(50))  # p.ej. "3/2026"
     serie: Mapped[str] = mapped_column(String(20), default="")

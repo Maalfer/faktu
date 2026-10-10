@@ -53,7 +53,7 @@ def _lines(*parts) -> str:
 
 
 def generar_pdf_factura(factura) -> bytes:
-    """Genera una factura en PDF a partir de un objeto Factura."""
+    """Genera una factura (o justificante de ingreso sin cliente) en PDF a partir de un objeto Factura."""
     buf = BytesIO()
     s_name = _style("name", fontName="Helvetica-Bold", fontSize=13, leading=17)
     s_small = _style("small", fontSize=8.5, leading=12, textColor=_MUTED)
@@ -79,8 +79,13 @@ def generar_pdf_factura(factura) -> bytes:
     )
     if detalle:
         emisor.append(Paragraph(detalle, s_small))
+    sin_cliente = bool(getattr(factura, "sin_cliente", False))
+    titulo = (
+        Paragraph("JUSTIFICANTE<br/>DE INGRESO", _style("title2", fontName="Helvetica-Bold", fontSize=17, leading=20, alignment=TA_RIGHT, textColor=_ACCENT))
+        if sin_cliente else Paragraph("FACTURA", s_title)
+    )
     numero = [
-        Paragraph("FACTURA", s_title),
+        titulo,
         Spacer(1, 2 * mm),
         Paragraph(f"<b>Nº {_e(factura.numero_completo)}</b>", s_right),
         Paragraph(f"Fecha de emisión: {factura.fecha_emision.strftime('%d/%m/%Y')}", s_right_muted),
@@ -97,7 +102,7 @@ def generar_pdf_factura(factura) -> bytes:
 
     # ── Cliente y forma de pago ─────────────────────────────────────────────
     ciudad_r = " ".join(x for x in (factura.receptor_cp, factura.receptor_ciudad) if x)
-    cliente = [Paragraph("FACTURAR A", s_label), Spacer(1, 1.5 * mm), Paragraph(f"<b>{_e(factura.receptor_nombre)}</b>", s_text)]
+    cliente = [Paragraph("ORIGEN DEL INGRESO" if sin_cliente else "FACTURAR A", s_label), Spacer(1, 1.5 * mm), Paragraph(f"<b>{_e(factura.receptor_nombre)}</b>", s_text)]
     det_r = _lines(
         f"NIF {factura.receptor_nif}" if factura.receptor_nif else "",
         factura.receptor_direccion, ciudad_r,
@@ -108,7 +113,7 @@ def generar_pdf_factura(factura) -> bytes:
         cliente.append(Paragraph(det_r, s_small))
     celdas, anchos = [cliente], [_W]
     if (factura.notas or "").strip():
-        notas = [Paragraph("FORMA DE PAGO / NOTAS", s_label), Spacer(1, 1.5 * mm), Paragraph(_e(factura.notas.strip()), s_small)]
+        notas = [Paragraph("NOTAS" if sin_cliente else "FORMA DE PAGO / NOTAS", s_label), Spacer(1, 1.5 * mm), Paragraph(_e(factura.notas.strip()), s_small)]
         celdas, anchos = [cliente, notas], [_W * 0.45, _W * 0.55]
     bloque = Table([celdas], colWidths=anchos)
     bloque.setStyle(TableStyle([
@@ -161,11 +166,15 @@ def generar_pdf_factura(factura) -> bytes:
         ("BOTTOMPADDING", (0, -1), (-1, -1), 8),
     ]))
     body.append(tot)
+    if sin_cliente:
+        body += [Spacer(1, 10 * mm), Paragraph(
+            "Resumen de ingresos cobrados a través de plataformas de venta. Documento de control interno: "
+            "no constituye una factura emitida a un cliente.", s_small)]
 
     doc = SimpleDocTemplate(
         buf, pagesize=A4, topMargin=18 * mm, bottomMargin=16 * mm,
         leftMargin=15 * mm - 6, rightMargin=15 * mm - 6,
-        title=f"Factura {factura.numero_completo}", author=factura.emisor_nombre,
+        title=f"{'Justificante de ingreso' if sin_cliente else 'Factura'} {factura.numero_completo}", author=factura.emisor_nombre,
     )
     doc.build(body)
     return buf.getvalue()
