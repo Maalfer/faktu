@@ -45,11 +45,11 @@
           <form id="form-login" class="space-y-4">
             <div>
               <label class="label" for="login-email">Email</label>
-              <input id="login-email" class="input" type="email" required autocomplete="email" placeholder="tu@email.com">
+              <input id="login-email" name="email" class="input" type="email" required autocomplete="email" placeholder="tu@email.com">
             </div>
             <div>
               <label class="label" for="login-pass">Contraseña</label>
-              <input id="login-pass" class="input" type="password" required autocomplete="current-password" placeholder="••••••••">
+              <input id="login-pass" name="password" class="input" type="password" required autocomplete="current-password" placeholder="••••••••">
             </div>
             <button class="btn-primary w-full py-3" type="submit">Entrar</button>
           </form>
@@ -58,15 +58,15 @@
           <form id="form-register" class="hidden space-y-4">
             <div>
               <label class="label" for="reg-name">Nombre</label>
-              <input id="reg-name" class="input" type="text" maxlength="120" placeholder="Tu nombre o empresa">
+              <input id="reg-name" name="full_name" class="input" type="text" maxlength="120" placeholder="Tu nombre o empresa">
             </div>
             <div>
               <label class="label" for="reg-email">Email</label>
-              <input id="reg-email" class="input" type="email" required placeholder="tu@email.com">
+              <input id="reg-email" name="email" class="input" type="email" required placeholder="tu@email.com">
             </div>
             <div>
               <label class="label" for="reg-pass">Contraseña (mín. 8 caracteres)</label>
-              <input id="reg-pass" class="input" type="password" required minlength="8" autocomplete="new-password" placeholder="••••••••">
+              <input id="reg-pass" name="password" class="input" type="password" required minlength="8" autocomplete="new-password" placeholder="••••••••">
             </div>
             <button class="btn-primary w-full py-3" type="submit">Crear mi cuenta</button>
           </form>
