@@ -213,6 +213,9 @@ function openCreateToken(container) {
     try {
       const created = await api.post("/api-tokens", { name });
       closeModal();
+      // Refresca la lista debajo del modal antes de mostrar el secreto.
+      const fresh = await api.get("/api-tokens");
+      renderTokens(fresh);
       showCreatedToken(created);
     } catch (err) {
       toast(err.message, "error");
@@ -231,16 +234,16 @@ function showCreatedToken(created) {
         Por seguridad <strong>solo se muestra una vez</strong>. Pégalo donde lo necesites
         (Claude, scripts, Postman…) antes de cerrar esta ventana.
       </p>
-      <div class="mt-4 rounded-xl bg-slate-900 px-4 py-3 ring-1 ring-slate-700">
-        <p class="break-all font-mono text-xs font-semibold text-emerald-300" id="tok-secret">${esc(created.token)}</p>
+      <div class="mt-4 rounded-xl bg-slate-900 px-4 py-4 ring-1 ring-slate-700">
+        <p class="select-all break-all text-center font-mono text-base font-bold tracking-wider text-white sm:text-lg" id="tok-secret">${esc(created.token)}</p>
       </div>
       <div class="mt-3 flex flex-wrap items-center gap-2">
-        <button class="btn-soft" id="tok-copy">${ICONS.copy} Copiar al portapapeles</button>
+        <button class="btn-primary" id="tok-copy">${ICONS.copy} Copiar al portapapeles</button>
         <a class="btn-ghost text-xs" href="/docs" target="_blank" rel="noopener">Ver documentación API</a>
       </div>
       <details class="mt-4 text-xs text-slate-500">
         <summary class="cursor-pointer font-semibold text-slate-600">Cómo usarlo (ejemplo curl)</summary>
-        <pre class="mt-2 overflow-x-auto rounded-lg bg-slate-100 p-3 text-[11px] leading-snug"><code>curl https://tu-dominio/api/v1/facturas \\\\
+        <pre class="mt-2 overflow-x-auto rounded-lg bg-slate-100 p-3 text-[11px] leading-snug text-slate-800"><code>curl https://tu-dominio/api/v1/facturas \\\\
   -H "Authorization: Bearer ${esc(created.token)}"</code></pre>
       </details>
       <div class="mt-6 flex justify-end">
