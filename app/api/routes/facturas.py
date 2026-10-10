@@ -1,11 +1,15 @@
+import io
+import re
+import zipfile
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession
+from app.api.routes.trimestres import quarter_range
 from app.models import Cliente, Factura, LineaFactura
 from app.schemas.factura import (
     FacturaCreate,
@@ -55,6 +59,43 @@ async def _apply_payload(db: DbSession, factura: Factura, payload: FacturaCreate
     await db.flush()
     for i, linea in enumerate(payload.lineas):
         factura.lineas.append(LineaFactura(**linea.model_dump(exclude={"orden"}), orden=i))
+
+
+@router.get("/zip")
+async def descargar_zip_trimestre(
+    user: CurrentUser, db: DbSession, year: int = Query(ge=2000, le=2100), trimestre: int = Query(ge=1, le=4)
+) -> Response:
+    """ZIP con el PDF de todas las facturas (no borrador) emitidas en un trimestre."""
+    start, end = quarter_range(year, trimestre)
+    facturas = (await db.scalars(
+        select(Factura)
+        .options(*_load_options())
+        .where(
+            Factura.user_id == user.id,
+            Factura.estado != "borrador",
+            Factura.fecha_emision >= start,
+            Factura.fecha_emision <= end,
+        )
+        .order_by(Factura.fecha_emision, Factura.id)
+    )).all()
+    if not facturas:
+        raise HTTPException(status_code=404, detail="No hay facturas en ese trimestre")
+
+    out = io.BytesIO()
+    usados: set[str] = set()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in facturas:
+            base = re.sub(r'[\\/:*?"<>|]+', "-", f"Factura {f.numero_completo} - {f.receptor_nombre}").strip()[:120]
+            nombre, n = f"{base}.pdf", 2
+            while nombre in usados:
+                nombre, n = f"{base} ({n}).pdf", n + 1
+            usados.add(nombre)
+            zf.writestr(nombre, generar_pdf_factura(f))
+    return Response(
+        content=out.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="facturas_{year}_T{trimestre}.zip"'},
+    )
 
 
 @router.get("/next-numero", response_model=NextNumeroResponse)

@@ -1,6 +1,6 @@
 // Vista de facturas: listado por trimestres + alta/edición.
 
-import { api, downloadPdf } from "../api.js";
+import { api, downloadFile, downloadPdf } from "../api.js";
 import {
   closeModal, confirmAction, esc, estadoBadge, fmtDate, fmtEUR, fmtNum, ICONS, openModal, quarterBadge, toast, todayISO,
 } from "../ui.js";
@@ -69,6 +69,17 @@ async function loadFacturas(container) {
   // Acciones
   content.querySelectorAll("[data-del]").forEach((b) =>
     b.addEventListener("click", () => delFactura(b.dataset.del, b.dataset.num, container)));
+  content.querySelectorAll("[data-zip]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try {
+        await downloadFile(`/facturas/zip?year=${b.dataset.year}&trimestre=${b.dataset.zip}`, `facturas_${b.dataset.year}_T${b.dataset.zip}.zip`);
+      } catch (e) {
+        toast(e.message, "error");
+      } finally {
+        b.disabled = false;
+      }
+    }));
   content.querySelectorAll("[data-pdf]").forEach((b) =>
     b.addEventListener("click", () => getPdf(b.dataset.pdf, b.dataset.num)));
   content.querySelectorAll("[data-edit]").forEach((b) =>
@@ -115,6 +126,7 @@ function quarterSection(q, data) {
       <div id="${esc(`qb-${data.year}-${q.num}`)}" class="quarter-body ${open ? "open" : ""}">
         <div>
           <div class="px-4 pb-4 sm:px-5">
+            ${q.facturas.length ? `<div class="mb-3 flex justify-end"><button class="btn-ghost !py-1.5 text-xs" data-zip="${q.num}" data-year="${data.year}" title="Descargar todas las facturas del trimestre en un ZIP">${ICONS.download}<span>Descargar facturas (.zip)</span></button></div>` : ""}
             ${q.facturas.length === 0
               ? emptyQuarter(q.is_future, "ingresos")
               : `<ul class="grid gap-3 sm:grid-cols-2">${q.facturas.map(facturaCard).join("")}</ul>`}

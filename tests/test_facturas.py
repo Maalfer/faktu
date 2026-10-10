@@ -128,3 +128,17 @@ async def test_aislamiento_entre_usuarios(auth):
     assert r.status_code == 404
     r = await client.get("/api/v1/facturas", headers=h2)
     assert r.json() == []
+
+async def test_zip_de_facturas_del_trimestre(auth):
+    import io, zipfile
+
+    client, headers = auth
+    for fecha in ("2026-08-03", "2026-09-10", "2026-10-02"):
+        r = await client.post("/api/v1/facturas", headers=headers, json={**PAYLOAD, "fecha_emision": fecha})
+        assert r.status_code == 201, r.text
+    r = await client.get("/api/v1/facturas/zip?year=2026&trimestre=3", headers=headers)
+    assert r.status_code == 200 and r.headers["content-type"] == "application/zip"
+    zf = zipfile.ZipFile(io.BytesIO(r.content))
+    assert len(zf.namelist()) == 2 and all(n.endswith(".pdf") for n in zf.namelist())
+    assert zf.read(zf.namelist()[0]).startswith(b"%PDF")
+    assert (await client.get("/api/v1/facturas/zip?year=2026&trimestre=1", headers=headers)).status_code == 404
