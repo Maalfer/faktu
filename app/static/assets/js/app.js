@@ -12,7 +12,7 @@ import { renderConfig } from "./views/configuracion.js";
 
 const ROUTES = [
   { id: "dashboard", label: "Panel", icon: ICONS.dashboard, render: renderDashboard, title: "Panel" },
-  { id: "facturas", label: "Facturas", icon: ICONS.facturas, render: renderFacturas, title: "Facturas", fab: "newInvoice" },
+  { id: "ingresos", alias: "facturas", label: "Ingresos", icon: ICONS.facturas, render: renderFacturas, title: "Ingresos", fab: "newInvoice" },
   { id: "gastos", label: "Gastos", icon: ICONS.gastos, render: renderGastos, title: "Gastos", fab: "newGasto" },
   { id: "trimestres", label: "Trimestres", icon: ICONS.trimestres, render: renderTrimestres, title: "Trimestres" },
   { id: "clientes", label: "Clientes", icon: ICONS.clientes, render: renderClientes, title: "Clientes" },
@@ -82,7 +82,7 @@ function setActiveNav(id) {
 
 async function router() {
   const hash = location.hash.replace(/^#\/?/, "");
-  const route = ROUTES.find((r) => r.id === hash) || ROUTES[0];
+  const route = ROUTES.find((r) => r.id === hash || r.alias === hash) || ROUTES[0];
   currentView = route.id;
 
   document.getElementById("mobile-title").textContent = route.title;

@@ -8,8 +8,8 @@ import {
 export async function renderFacturas(container) {
   container.innerHTML = `<div class="flex items-center justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">Facturas</h1>
-        <p class="mt-1 text-sm text-slate-500">Emite, edita y descarga tus facturas por trimestre</p>
+        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">Ingresos</h1>
+        <p class="mt-1 text-sm text-slate-500">Emite, edita y descarga las facturas de tus ingresos por trimestre</p>
       </div>
       <button class="btn-primary" id="btn-nueva-factura">${ICONS.plus}<span class="hidden sm:inline">Nueva factura</span></button>
     </div>
@@ -116,7 +116,7 @@ function quarterSection(q, data) {
         <div>
           <div class="px-4 pb-4 sm:px-5">
             ${q.facturas.length === 0
-              ? emptyQuarter(q.is_future, "facturas")
+              ? emptyQuarter(q.is_future, "ingresos")
               : `<ul class="grid gap-3 sm:grid-cols-2">${q.facturas.map(facturaCard).join("")}</ul>`}
           </div>
         </div>
