@@ -39,15 +39,23 @@ async def client():
         yield c
 
 
-@pytest_asyncio.fixture
-async def auth(client) -> tuple[AsyncClient, dict]:
-    """Cliente autenticado con un usuario recién creado por test."""
-    # El registro solo está abierto con la BD vacía: cada test parte de cero.
+_TABLAS = ("lineas_factura", "facturas", "clientes", "gastos", "conceptos_trimestre", "config_autonomo", "api_tokens", "users")
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _bd_limpia():
+    """El registro solo está abierto con la BD vacía: cada test parte de cero."""
     from sqlalchemy import text
 
     async with engine.begin() as conn:
-        for table in ("lineas_factura", "facturas", "clientes", "gastos", "conceptos_trimestre", "config_autonomo", "api_tokens", "users"):
+        for table in _TABLAS:
             await conn.execute(text(f"DELETE FROM {table}"))
+    yield
+
+
+@pytest_asyncio.fixture
+async def auth(client) -> tuple[AsyncClient, dict]:
+    """Cliente autenticado con el único usuario de la app, recién creado por test."""
     email = f"user{uuid.uuid4().hex[:10]}@test.es"
     r = await client.post("/api/v1/auth/register", json={
         "email": email, "password": "clave-segura-123", "full_name": "Test User",
@@ -56,3 +64,19 @@ async def auth(client) -> tuple[AsyncClient, dict]:
     token = r.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     return client, headers
+
+
+@pytest_asyncio.fixture
+async def otro_usuario(auth) -> dict:
+    """Cabeceras de un segundo usuario (el registro público está cerrado, se inserta directamente)."""
+    from sqlalchemy import text
+
+    from app.core.security import create_access_token, hash_password
+
+    async with engine.begin() as conn:
+        res = await conn.execute(
+            text("INSERT INTO users (email, full_name, hashed_password, is_active) VALUES (:e, 'Otro', :h, 1)"),
+            {"e": f"otro{uuid.uuid4().hex[:8]}@test.es", "h": hash_password("clave-segura-123")},
+        )
+        uid = res.lastrowid
+    return {"Authorization": f"Bearer {create_access_token(uid)}"}

@@ -116,18 +116,16 @@ async def test_pdf_descargable(auth):
     assert r2.status_code == 401
 
 
-async def test_aislamiento_entre_usuarios(auth):
+async def test_aislamiento_entre_usuarios(auth, otro_usuario):
     client, headers = auth
     fid = (await client.post("/api/v1/facturas", headers=headers, json=PAYLOAD)).json()["id"]
 
-    r = await client.post("/api/v1/auth/register", json={
-        "email": "otro@test.es", "password": "clave-segura-123", "full_name": "Otro",
-    })
-    h2 = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    h2 = otro_usuario
     r = await client.get(f"/api/v1/facturas/{fid}", headers=h2)
     assert r.status_code == 404
     r = await client.get("/api/v1/facturas", headers=h2)
     assert r.json() == []
+
 
 async def test_zip_de_facturas_del_trimestre(auth):
     import io, zipfile

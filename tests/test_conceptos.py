@@ -98,17 +98,14 @@ async def test_export_excel(auth):
     assert ws["D3"].value == "Gasto ejemplo"
 
 
-async def test_aislamiento_entre_usuarios(auth, client):
+async def test_aislamiento_entre_usuarios(auth, otro_usuario, client):
     _, headers_a = auth
     await client.post("/api/v1/conceptos", headers=headers_a, json={
         "year": YEAR, "trimestre": 1, "tipo": "ingreso",
         "concepto": "Solo de A", "importe": 999, "iva": None, "orden": 0,
     })
 
-    r = await client.post("/api/v1/auth/register", json={
-        "email": "otro-conceptos@test.es", "password": "clave-segura-123", "full_name": "Otro",
-    })
-    headers_b = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    headers_b = otro_usuario
 
     r = await client.get(f"/api/v1/conceptos?year={YEAR}", headers=headers_b)
     assert r.status_code == 200

@@ -16,11 +16,18 @@ async def test_register_y_login(client):
     assert r2.json()["access_token"]
 
 
-async def test_email_duplicado(client):
+async def test_registro_cerrado_tras_la_primera_cuenta(client):
     payload = {"email": "dup@test.es", "password": "clave-segura-123", "full_name": ""}
+    r = await client.get("/api/v1/auth/signup-available")
+    assert r.json() == {"available": True, "user_count": 0}
     assert (await client.post("/api/v1/auth/register", json=payload)).status_code == 201
-    r = await client.post("/api/v1/auth/register", json=payload)
-    assert r.status_code == 409
+
+    r = await client.get("/api/v1/auth/signup-available")
+    assert r.json() == {"available": False, "user_count": 1}
+    # ni siquiera con el mismo email ni con otro: la app admite un único usuario
+    assert (await client.post("/api/v1/auth/register", json=payload)).status_code == 403
+    otro = {**payload, "email": "otro@test.es"}
+    assert (await client.post("/api/v1/auth/register", json=otro)).status_code == 403
 
 
 async def test_login_incorrecto(client):
