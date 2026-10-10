@@ -31,28 +31,41 @@ Generadas desde la cuenta de demo que crea `scripts/seed_demo.py`
 
 **Stack**: FastAPI · SQLAlchemy 2 (async) · Pydantic v2 · Alembic · PyJWT · bcrypt · Reportlab · SQLite (cambiable a Postgres).
 
-## Despliegue con Docker
+## Despliegue con Dockerfile
+
+Build y arranque en un solo comando (la imagen incluye la migración Alembic
+en el `CMD`, así que el esquema queda al día al primer arranque):
 
 ```bash
-docker compose up -d --build
+docker build -t faktu .
+docker run -d --name faktu --restart unless-stopped -p 8000:8000 \
+  -v faktu-data:/data \
+  -e SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')" \
+  -e DATABASE_URL=sqlite+aiosqlite:////data/faktu.db \
+  -e AUTO_CREATE_TABLES=false \
+  -e MEDIA_DIR=/data/media \
+  faktu
 ```
 
-La app queda en `http://localhost:8000`. Datos y adjuntos se persisten en el
-volumen `faktu-data`.
+Datos y adjuntos viven en el volumen `faktu-data` (`/data/faktu.db` y
+`/data/media/...`). Para actualizarla: `docker build -t faktu .` y
+`docker restart faktu`.
 
-Variables de entorno relevantes (en `docker-compose.yml`, ajustar antes de
-desplegar):
+Variables de entorno relevantes:
 
-- `SECRET_KEY` — genera una con
+- `SECRET_KEY` — **obligatorio cambiarla**. Genera una con
   `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
-- `AUTO_CREATE_TABLES=false` — recomendado en producción (usa migraciones).
-- `DATABASE_URL` — cambia a Postgres si necesitas concurrencia o backups
-  serios:
-  `postgresql+asyncpg://faktu:faktu@db:5432/faktu`.
-- `MEDIA_DIR=/data/media` — ruta del volumen para los adjuntos de gastos.
+- `AUTO_CREATE_TABLES=false` — recomendado en producción (las migraciones se
+  ejecutan al arrancar vía `CMD`).
+- `DATABASE_URL` — SQLite por defecto (`sqlite+aiosqlite:////data/faktu.db`).
+  Cambia a Postgres si necesitas concurrencia o backups serios:
+  `postgresql+asyncpg://faktu:faktu@db:5432/faktu` (y monta el host de la BD
+  mediante tu orquestador).
+- `MEDIA_DIR=/data/media` — ruta interna del contenedor donde se guardan los
+  adjuntos de gastos.
 
-Detrás de un proxy inverso (Caddy/Nginx/Traefik), apúntalo a `localhost:8000`
-y deja los headers `Host` y `X-Forwarded-Proto` reenviados al contenedor.
+Detrás de un proxy inverso (Caddy/Nginx/Traefik) apúntalo a `localhost:8000`
+y reenvía los headers `Host` y `X-Forwarded-Proto` al contenedor.
 
 ## Desarrollo local
 
