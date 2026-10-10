@@ -90,12 +90,6 @@ curl https://tu-dominio/api/v1/facturas \
 
 Endpoints: `GET/POST /api/v1/api-tokens`, `DELETE /api/v1/api-tokens/{id}`.
 
-## Versión
-
-Single source of truth: archivo `VERSION` en la raíz. Se expone vía
-`GET /api/v1/version` y se muestra en el footer del login y del sidebar.
-Para publicar una nueva versión: edita `VERSION` y redespliega.
-
 ## Estructura
 
 ```
