@@ -13,8 +13,8 @@ export async function renderDashboard(container) {
   let data, tri;
   try {
     [data, tri] = await Promise.all([
-      api.get("/dashboard?year=" + (window.faktuYear || "")),
-      api.get("/trimestres?year=" + (window.faktuYear || "")),
+      api.get("/dashboard" + (window.faktuYear ? "?year=" + window.faktuYear : "")),
+      api.get("/trimestres" + (window.faktuYear ? "?year=" + window.faktuYear : "")),
     ]);
   } catch (e) {
     container.innerHTML = `<div class="card p-8 text-center text-slate-500">${esc(e.message)}</div>`;

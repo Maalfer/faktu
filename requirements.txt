@@ -10,3 +10,4 @@ PyJWT==2.15.1
 bcrypt==4.3.0
 python-multipart==0.0.32
 reportlab==5.0.1
+openpyxl==3.1.5

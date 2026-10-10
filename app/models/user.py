@@ -19,6 +19,7 @@ class User(Base):
     clientes = relationship("Cliente", back_populates="user", cascade="all, delete-orphan")
     facturas = relationship("Factura", back_populates="user", cascade="all, delete-orphan")
     gastos = relationship("Gasto", back_populates="user", cascade="all, delete-orphan")
+    conceptos = relationship("ConceptoTrimestre", back_populates="user", cascade="all, delete-orphan")
     config = relationship(
         "ConfigAutonomo", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )

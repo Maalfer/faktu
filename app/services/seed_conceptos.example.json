@@ -1,0 +1,11 @@
+{
+  "1": {
+    "ingresos": [
+      ["Ventas ejemplo", 1000.0, 21.0],
+      ["Ingreso exento ejemplo", 500.0, null]
+    ],
+    "gastos": [
+      ["Gasto ejemplo", 100.0]
+    ]
+  }
+}

@@ -14,7 +14,7 @@ export async function renderGastos(container) {
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">Gastos</h1>
         <p class="mt-1 text-sm text-slate-500">Controla tus gastos deducibles agrupados por trimestre</p>
       </div>
-      <button class="btn-primary" id="btn-nuevo-gasto">${ICONS.plus}<span class="hidden sm:inline">Nuevo gasto</span></button>
+      <button class="btn-primary" id="btn-nuevo-gasto">Nuevo gasto</button>
     </div>
     <div class="mt-6" id="gastos-content"></div>`;
 
@@ -27,7 +27,7 @@ async function loadGastos(container) {
   content.innerHTML = `<div class="flex justify-center py-16"><div class="h-9 w-9 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div></div>`;
   let data;
   try {
-    data = await api.get("/trimestres?year=" + (window.faktuYear || ""));
+    data = await api.get("/trimestres" + (window.faktuYear ? "?year=" + window.faktuYear : ""));
   } catch (e) {
     content.innerHTML = `<div class="card p-8 text-center text-slate-500">${esc(e.message)}</div>`;
     return;

@@ -21,6 +21,10 @@ Diseño responsive (escritorio y móvil) y en español.
 - 🗓️ **Vista por trimestres**: el trimestre actual primero, pasados a
   continuación (más reciente primero) y futuros al final. Totales por
   trimestre: facturado, gastos y neto.
+- 📚 **Libro de conceptos por trimestre**: agrupa ingresos y gastos por
+  conceptos (independiente de facturas/gastos), con totales por trimestre y
+  **exportación a Excel** (una hoja por trimestre, mismo formato que el libro
+  de referencia).
 - 📊 **Dashboard** anual: KPIs, gráfico por trimestres y actividad reciente.
 - 👥 **Clientes** con total facturado acumulado y vínculo directo a la factura.
 - ⚙️ **Configuración del emisor** para rellenar los datos de la factura.
@@ -83,5 +87,42 @@ tests/               # pytest + httpx (ASGI)
 
 La API REST vive bajo `/api/v1` y está documentada en `/docs` (Swagger) y
 `/redoc`.
+
+## Token de API para IAs (Claude, GPT, etc.)
+
+En **Ajustes → Token API / IA** puedes generar tokens personales de larga
+duración que dan acceso a toda la API con permisos equivalentes a tu sesión.
+Útil para que un asistente (Claude, Cursor, un script propio, Postman…)
+gestione la app en tu nombre.
+
+- Formato: `fkt_<8-chars>_<32-chars-secrets>` (≈256 bits de entropía).
+- Se muestran **una sola vez** al crearlos; guárdalo en un gestor de
+  contraseñas.
+- Puedes tener varios a la vez (uno por IA / dispositivo) y revocar
+  individualmente.
+- Uso:
+
+  ```bash
+  curl https://tu-dominio/api/v1/facturas \
+       -H "Authorization: Bearer fkt_<prefijo>_<secreto>"
+  ```
+
+- Endpoints:
+  - `GET /api/v1/api-tokens` — lista tus tokens activos y revocados (sin
+    secretos).
+  - `POST /api/v1/api-tokens {"name": "Claude Desktop"}` — crea uno y
+    devuelve el secreto una sola vez.
+  - `DELETE /api/v1/api-tokens/{id}` — revoca un token.
+
+## Versión
+
+La versión se gestiona desde el archivo `VERSION` en la raíz (semver
+`MAJOR.MINOR.PATCH`). Se expone automáticamente en:
+
+- `GET /api/v1/version` → `{"name": "Faktu", "version": "1.0.0"}`
+- Footer del login y del sidebar de la SPA.
+
+Para publicar una nueva versión basta con editar `VERSION` y reiniciar el
+servidor (o redeploy). No hace falta tocar otros archivos.
 
 [Reportlab]: https://www.reportlab.com/

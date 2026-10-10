@@ -14,6 +14,12 @@ venv/
 media/
 .env
 
+# Datos personales / contabilidad (NO versionar)
+*.xlsx
+*.xls
+*.csv
+app/services/seed_conceptos.json
+
 # Entorno
 node_modules/
 npm-debug.log*

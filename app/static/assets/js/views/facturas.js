@@ -24,7 +24,7 @@ async function loadFacturas(container) {
   content.innerHTML = spinner();
   let data;
   try {
-    data = await api.get("/trimestres?year=" + (window.faktuYear || ""));
+    data = await api.get("/trimestres" + (window.faktuYear ? "?year=" + window.faktuYear : ""));
   } catch (e) {
     content.innerHTML = errorCard(e.message);
     return;

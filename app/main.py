@@ -7,15 +7,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 from app.api.routes import (
+    api_tokens,
     auth,
     clientes,
+    conceptos,
     configuracion,
     dashboard,
     facturas,
     gastos,
     trimestres,
+    version,
 )
 from app.core.config import settings
 from app.core.database import Base, engine
@@ -55,12 +60,25 @@ if settings.debug:
 
 
 # ── Rutas API ────────────────────────────────────────────────────────────────
-for r in (auth, clientes, facturas, gastos, configuracion, trimestres, dashboard):
+for r in (auth, api_tokens, clientes, facturas, gastos, configuracion, trimestres, conceptos, dashboard, version):
     app.include_router(r.router, prefix=settings.api_prefix)
 
 
 # ── Estáticos y SPA ──────────────────────────────────────────────────────────
 settings.media_path.mkdir(parents=True, exist_ok=True)
+
+
+class NoCacheStaticMiddleware(BaseHTTPMiddleware):
+    """Desactiva la caché para /assets, /media y la SPA durante el desarrollo."""
+
+    async def dispatch(self, request, call_next):
+        resp: Response = await call_next(request)
+        if request.url.path.startswith(("/assets", "/media", "/")) and resp.status_code == 200:
+            resp.headers["Cache-Control"] = "no-store, must-revalidate"
+        return resp
+
+
+app.add_middleware(NoCacheStaticMiddleware)
 app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
 app.mount("/media", StaticFiles(directory=settings.media_path), name="media")
 

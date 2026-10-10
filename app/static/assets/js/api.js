@@ -74,7 +74,7 @@ export function downloadUrl(path) {
   return token ? `${api.base}${path}` : api.base + path;
 }
 
-export async function downloadPdf(url, fallbackName = "descarga.pdf") {
+export async function downloadFile(url, fallbackName = "descarga") {
   const token = api.getToken();
   const res = await fetch(api.base + url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -88,6 +88,10 @@ export async function downloadPdf(url, fallbackName = "descarga.pdf") {
   a.click();
   a.remove();
   URL.revokeObjectURL(a.href);
+}
+
+export function downloadPdf(url, fallbackName = "descarga.pdf") {
+  return downloadFile(url, fallbackName);
 }
 
 export async function fileObjectUrl(path) {

@@ -6,6 +6,7 @@ import uuid
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:////tmp/opencode/test_faktu.db")
 os.environ.setdefault("AUTO_CREATE_TABLES", "false")
 os.environ.setdefault("SECRET_KEY", "clave-de-test-suficientemente-larga-32b")
+os.environ.setdefault("SEED_CONCEPTOS", "false")
 
 import pytest_asyncio  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
@@ -21,7 +22,7 @@ async def _setup_db():
     import aiosqlite
 
     async with aiosqlite.connect("/tmp/opencode/test_faktu.db") as con:
-        for table in ("lineas_factura", "facturas", "clientes", "gastos", "config_autonomo", "users"):
+        for table in ("lineas_factura", "facturas", "clientes", "gastos", "conceptos_trimestre", "config_autonomo", "users"):
             await con.execute(f"DROP TABLE IF EXISTS {table}")
         await con.commit()
     async with engine.begin() as conn:

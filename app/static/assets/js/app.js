@@ -6,6 +6,7 @@ import { initAuth } from "./views/auth.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderFacturas, openFacturaForm } from "./views/facturas.js";
 import { renderGastos, openGastoForm } from "./views/gastos.js";
+import { renderTrimestres } from "./views/trimestres.js";
 import { renderClientes } from "./views/clientes.js";
 import { renderConfig } from "./views/configuracion.js";
 
@@ -13,6 +14,7 @@ const ROUTES = [
   { id: "dashboard", label: "Panel", icon: ICONS.dashboard, render: renderDashboard, title: "Panel" },
   { id: "facturas", label: "Facturas", icon: ICONS.facturas, render: renderFacturas, title: "Facturas", fab: "newInvoice" },
   { id: "gastos", label: "Gastos", icon: ICONS.gastos, render: renderGastos, title: "Gastos", fab: "newGasto" },
+  { id: "trimestres", label: "Trimestres", icon: ICONS.trimestres, render: renderTrimestres, title: "Trimestres" },
   { id: "clientes", label: "Clientes", icon: ICONS.clientes, render: renderClientes, title: "Clientes" },
   { id: "ajustes", label: "Ajustes", icon: ICONS.ajustes, render: renderConfig, title: "Ajustes" },
 ];
@@ -25,11 +27,27 @@ function showApp() {
   document.getElementById("auth-screen").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
   loadUserInfo();
+  setVersionText();
 }
 
 function showAuth() {
   document.getElementById("app").classList.add("hidden");
   document.getElementById("auth-screen").classList.remove("hidden");
+  setVersionText();
+}
+
+async function setVersionText() {
+  try {
+    const info = await api.get("/version");
+    const v = `v${info.version}`;
+    document.querySelectorAll("#app-version-login, #app-version-side").forEach((el) => {
+      el.textContent = v;
+    });
+  } catch (_) {
+    document.querySelectorAll("#app-version-login, #app-version-side").forEach((el) => {
+      el.textContent = "v?";
+    });
+  }
 }
 
 function loadUserInfo() {
