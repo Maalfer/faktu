@@ -200,13 +200,11 @@ export async function openGastoForm(id = null) {
           <label class="label">Notas</label>
           <textarea class="input" name="notas" rows="2" placeholder="Opcional">${esc(g?.notas || "")}</textarea>
         </div>
-        ${g
-          ? `<div>
-              <label class="label">Archivo adjunto ${g.archivo ? "(ya existe uno)" : ""}</label>
-              <input class="input file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-brand-700" type="file" name="archivo" accept="image/*,.pdf">
-              ${g.archivo ? `<p class="mt-1 text-xs text-slate-400">Subir otro reemplazará el actual.</p>` : ""}
-            </div>`
-          : ""}
+        <div>
+          <label class="label">Archivo adjunto ${g?.archivo ? `(actual: ${esc(g.archivo_nombre || "archivo")})` : "(factura o ticket, PDF o imagen)"}</label>
+          <input class="input file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-brand-700" type="file" name="archivo" accept="image/*,.pdf">
+          ${g?.archivo ? `<p class="mt-1 text-xs text-slate-400">Subir otro reemplazará el actual.</p>` : ""}
+        </div>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" class="btn-ghost" id="gasto-cancel">Cancelar</button>
           <button type="submit" class="btn-primary">${g ? "Guardar cambios" : "Crear gasto"}</button>
