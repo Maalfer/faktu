@@ -8,6 +8,18 @@ necesarios para presentar el modelo 303/130.
 
 Diseño responsive (escritorio y móvil) y en español.
 
+## Capturas
+
+| | |
+|---|---|
+| ![Vista principal (login + dashboard)](docs/screenshots/01-portada.png) | ![Listado y edición de facturas](docs/screenshots/02-facturas.png) |
+| *Vista principal (login + dashboard)* | *Listado y edición de facturas* |
+| ![Trimestres con totales](docs/screenshots/03-trimestres.png) | ![Gestión de clientes](docs/screenshots/04-clientes.png) |
+| *Trimestres con totales* | *Gestión de clientes* |
+
+Las imágenes se generan a partir de la cuenta demo poblada por
+`scripts/seed_demo.py` (`demo@faktu.app` / `demo1234`).
+
 ## Funcionalidades
 
 - 🔐 **Autenticación**: registro/login con JWT (7 días de sesión). Cada cuenta
