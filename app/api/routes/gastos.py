@@ -4,11 +4,11 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.config import settings
-from app.models import ConceptoTrimestre, Gasto
+from app.models import Gasto
 from app.schemas.gasto import GastoCreate, GastoRead, GastoUpdate
 
 router = APIRouter(prefix="/gastos", tags=["gastos"])
@@ -79,7 +79,6 @@ async def delete_gasto(gasto_id: int, user: CurrentUser, db: DbSession) -> None:
             os.remove(settings.media_path / g.archivo)
         except OSError:
             pass
-    await db.execute(delete(ConceptoTrimestre).where(ConceptoTrimestre.gasto_id == g.id))
     await db.delete(g)
     await db.commit()
 

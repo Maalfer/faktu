@@ -34,21 +34,14 @@ class ConceptoUpdate(ConceptoBase):
 
 
 class ConceptoRead(ConceptoBase):
-    id: int
-    factura_id: int | None = None
-    gasto_id: int | None = None
+    """``auto=True``: fila calculada desde una factura (Ingresos) o un gasto; no se edita aquí."""
+
+    id: int | None = None
+    auto: bool = False
+    origen: Literal["manual", "factura", "gasto"] = "manual"
+    ref_id: int | None = None
 
     model_config = {"from_attributes": True}
-
-
-class GenerarPayload(BaseModel):
-    year: int = Field(ge=2000, le=2100)
-    trimestre: int = Field(ge=1, le=4)
-
-
-class GenerarResponse(BaseModel):
-    ingresos_nuevos: int
-    gastos_nuevos: int
 
 
 class QuarterConceptos(BaseModel):

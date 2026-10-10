@@ -138,7 +138,7 @@ def test_loader_seed_sin_fichero(tmp_path, monkeypatch):
     assert sc._load() == {}
 
 
-async def test_generar_desde_facturas_y_gastos(auth):
+async def test_libro_automatico_desde_ingresos_y_gastos(auth):
     from tests.test_facturas import PAYLOAD
     from tests.test_gastos import crear_gasto
 
@@ -147,22 +147,20 @@ async def test_generar_desde_facturas_y_gastos(auth):
     assert r.status_code == 201, r.text
     factura = r.json()
     g = await crear_gasto(client, headers, fecha="2026-08-10", importe=12.5, concepto="Hosting agosto")
-
-    r = await client.post("/api/v1/conceptos/generar", headers=headers, json={"year": 2026, "trimestre": 3})
-    assert r.status_code == 200, r.text
-    assert r.json() == {"ingresos_nuevos": 1, "gastos_nuevos": 1}
-
-    # idempotente
-    r = await client.post("/api/v1/conceptos/generar", headers=headers, json={"year": 2026, "trimestre": 3})
-    assert r.json() == {"ingresos_nuevos": 0, "gastos_nuevos": 0}
+    r = await client.post("/api/v1/conceptos", headers=headers, json={
+        "year": 2026, "trimestre": 3, "tipo": "ingreso", "concepto": "Ventas Skool", "importe": 100, "iva": None, "orden": 0,
+    })
+    assert r.status_code == 201
 
     r = await client.get("/api/v1/conceptos?year=2026", headers=headers)
     t3 = next(q for q in r.json()["trimestres"] if q["num"] == 3)
-    assert t3["ingresos"][0]["factura_id"] == factura["id"]
-    assert float(t3["ingresos"][0]["importe"]) == float(factura["total"])
-    assert t3["gastos"][0]["concepto"] == "Hosting agosto"
+    auto = [c for c in t3["ingresos"] if c["auto"]]
+    assert len(auto) == 1 and auto[0]["origen"] == "factura" and auto[0]["ref_id"] == factura["id"]
+    assert float(auto[0]["importe"]) == float(factura["total"])
+    assert [c["concepto"] for c in t3["ingresos"] if not c["auto"]] == ["Ventas Skool"]
+    assert t3["gastos"][0]["concepto"] == "Hosting agosto" and t3["gastos"][0]["auto"]
 
-    # al borrar el gasto desaparece su concepto generado
+    # al borrar el gasto desaparece solo del libro
     await client.delete(f"/api/v1/gastos/{g['id']}", headers=headers)
     r = await client.get("/api/v1/conceptos?year=2026", headers=headers)
     t3 = next(q for q in r.json()["trimestres"] if q["num"] == 3)

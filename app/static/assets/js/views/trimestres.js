@@ -10,7 +10,7 @@ export async function renderTrimestres(container) {
     <div class="flex items-center justify-between gap-3">
       <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">Trimestres</h1>
-        <p class="mt-1 text-sm text-slate-500">Agrupa tus ingresos y gastos por conceptos y expórtalos a Excel</p>
+        <p class="mt-1 text-sm text-slate-500">Libro automático con tus ingresos y gastos de cada trimestre; añade a mano solo lo que no tenga factura. Exportable a Excel</p>
       </div>
       <button class="btn-primary" id="btn-export">${ICONS.download}<span class="hidden sm:inline">Exportar Excel</span></button>
     </div>
@@ -75,8 +75,6 @@ async function loadTrimestres(container) {
     })));
   content.querySelectorAll("[data-edit]").forEach((b) =>
     b.addEventListener("click", () => openConceptoForm({ id: Number(b.dataset.edit) })));
-  content.querySelectorAll("[data-generar]").forEach((b) =>
-    b.addEventListener("click", () => generarTrimestre(Number(b.dataset.year), Number(b.dataset.generar), container)));
   content.querySelectorAll("[data-del]").forEach((b) =>
     b.addEventListener("click", () => delConcepto(b.dataset.del, b.dataset.nombre, container)));
 }
@@ -107,9 +105,6 @@ function quarterSection(q, data) {
       </button>
       <div id="${esc(`tb-${data.year}-${q.num}`)}" class="quarter-body ${open ? "open" : ""}">
         <div>
-          <div class="flex justify-end px-4 pb-2 sm:px-5">
-            <button class="btn-ghost !py-1.5 text-xs" data-generar="${q.num}" data-year="${data.year}" title="Añade al libro las facturas emitidas y los gastos de este trimestre que aún no estén">Generar desde facturas y gastos</button>
-          </div>
           <div class="grid gap-4 px-4 pb-4 sm:grid-cols-2 sm:px-5">
             ${sideColumn("ingreso", "Ingresos", q.ingresos, q.total_ingresos, q, data, "brand")}
             ${sideColumn("gasto", "Gastos", q.gastos, q.total_gastos, q, data, "rose")}
@@ -129,7 +124,7 @@ function sideColumn(tipo, title, items, total, q, data, tone) {
           <h3 class="text-sm font-bold text-slate-700">${title}</h3>
           <span class="text-sm font-extrabold ${toneText}">${fmtEUR(total)}</span>
         </div>
-        <button class="icon-btn ${toneBtn}" data-add="${tipo}" data-year="${data.year}" data-trimestre="${q.num}" title="Añadir ${tipo}">${ICONS.plus}</button>
+        <button class="icon-btn ${toneBtn}" data-add="${tipo}" data-year="${data.year}" data-trimestre="${q.num}" title="Añadir ${tipo} manual (lo demás se calcula solo)">${ICONS.plus}</button>
       </div>
       ${items.length === 0
         ? `<div class="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-xs text-slate-400">Sin ${title.toLowerCase()}</div>`
@@ -148,14 +143,16 @@ function conceptoRow(c, tone) {
         <div class="mt-1 flex items-center gap-1.5">
           <span class="text-xs font-bold ${tone === "brand" ? "text-brand-600" : "text-rose-600"}">${fmtEUR(c.importe)}</span>
           ${ivaBadge}
-          ${c.factura_id || c.gasto_id ? `<span class="badge bg-brand-50 text-brand-600" title="Generado automáticamente">auto</span>` : ""}
+          ${c.auto ? `<span class="badge bg-brand-50 text-brand-600" title="Calculado automáticamente desde ${c.origen === "factura" ? "Ingresos" : "Gastos"}">auto</span>` : ""}
         </div>
         ${c.notas ? `<p class="mt-1 truncate text-[11px] text-slate-400" title="${esc(c.notas)}">${esc(c.notas)}</p>` : ""}
       </div>
-      <div class="flex items-center gap-1 opacity-60 transition group-hover:opacity-100">
+      ${c.auto
+        ? `<a class="icon-btn !h-8 !w-8 opacity-60 transition group-hover:opacity-100" href="#/${c.origen === "factura" ? "ingresos" : "gastos"}" title="Se edita en ${c.origen === "factura" ? "Ingresos" : "Gastos"}">${ICONS.edit}</a>`
+        : `<div class="flex items-center gap-1 opacity-60 transition group-hover:opacity-100">
         <button class="icon-btn !h-8 !w-8" data-edit="${c.id}" title="Editar">${ICONS.edit}</button>
         <button class="icon-btn !h-8 !w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600" data-del="${c.id}" data-nombre="${esc(c.concepto)}" title="Eliminar">${ICONS.trash}</button>
-      </div>
+      </div>`}
     </li>`;
 }
 
@@ -167,17 +164,6 @@ async function exportExcel() {
   try {
     await downloadFile(`/conceptos/export?year=${year}`, `Trimestres_${year}.xlsx`);
     toast("Excel exportado");
-  } catch (e) {
-    toast(e.message, "error");
-  }
-}
-
-async function generarTrimestre(year, trimestre, container) {
-  try {
-    const r = await api.post("/conceptos/generar", { year, trimestre });
-    const n = r.ingresos_nuevos + r.gastos_nuevos;
-    toast(n ? `Añadidos ${r.ingresos_nuevos} ingresos y ${r.gastos_nuevos} gastos` : "El libro ya estaba al día");
-    loadTrimestres(container);
   } catch (e) {
     toast(e.message, "error");
   }

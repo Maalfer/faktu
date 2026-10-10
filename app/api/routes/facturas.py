@@ -2,11 +2,11 @@ from datetime import date
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import Response
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession
-from app.models import Cliente, ConceptoTrimestre, Factura, LineaFactura
+from app.models import Cliente, Factura, LineaFactura
 from app.schemas.factura import (
     FacturaCreate,
     FacturaListItem,
@@ -123,7 +123,6 @@ async def update_factura(
 @router.delete("/{factura_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_factura(factura_id: int, user: CurrentUser, db: DbSession) -> None:
     f = await _get_owned(db, user.id, factura_id)
-    await db.execute(delete(ConceptoTrimestre).where(ConceptoTrimestre.factura_id == f.id))
     await db.delete(f)
     await db.commit()
 
