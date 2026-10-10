@@ -16,6 +16,15 @@ responsive (escritorio y móvil).
 Generadas desde la cuenta de demo que crea `scripts/seed_demo.py`
 (`demo@faktu.app` / `demo1234`).
 
+## Token de API y exportación
+
+| | |
+|---|---|
+| ![Creación del token](docs/screenshots/05-token-api.png) | ![IA usando el token](docs/screenshots/06-token-claude.png) |
+| *Token de API desde Ajustes → Token API / IA* | *Claude u otra IA operando la cuenta con el token* |
+| ![Documentación Swagger](docs/screenshots/07-api-docs.png) | ![Exportación ZIP de CSVs](docs/screenshots/08-backup-csv.png) |
+| *Documentación interactiva en `/docs`* | *Exportación del 100% de los datos en un ZIP de CSVs* |
+
 ## Funcionalidades
 
 - Autenticación con JWT, multi-cuenta y datos aislados por usuario.
