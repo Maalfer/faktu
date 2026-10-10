@@ -2,17 +2,21 @@
 from datetime import date
 from decimal import Decimal
 from io import BytesIO
+from pathlib import Path
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 _ACCENT = colors.HexColor("#4f46e5")
 _LIGHT = colors.HexColor("#f3f4f6")
 _GRID = colors.HexColor("#d1d5db")
+
+# Logo de la marca (si no existe, el PDF se genera sin imagen)
+_LOGO = Path(__file__).resolve().parent.parent.parent / "app" / "static" / "assets" / "logo.png"
 
 
 def _fmt(d) -> str:
@@ -31,27 +35,30 @@ def generar_pdf_factura(factura) -> bytes:
     normal = styles["Normal"]
 
     body: list = []
-    # ── Encabezado ──────────────────────────────────────────────────────────
-    head = Table(
-        [[
-            Paragraph(
-                f"<b>{factura.emisor_nombre or 'FACTURA'}</b><br/>"
-                f"<font size=8 color=#6b7280>{factura.emisor_nif}<br/>"
-                f"{factura.emisor_direccion}<br/>{factura.emisor_cp} {factura.emisor_ciudad}</font>",
-                normal,
-            ),
-            Paragraph(
-                "<font size=18><b>FACTURA</b></font><br/>"
-                f"<font size=11 color=#6b7280>{factura.numero_completo}</font><br/>"
-                f"<font size=9>Emitida: {factura.fecha_emision.strftime('%d/%m/%Y')}</font>",
-                ParagraphStyle("num", parent=normal, fontSize=13, alignment=TA_RIGHT),
-            ),
-        ]],
-        colWidths=[100 * mm, 90 * mm],
-    )
+    # ── Encabezado (logo + emisor + nº de factura) ──────────────────────────
+    head_row = [
+        Paragraph(
+            f"<b>{factura.emisor_nombre or 'FACTURA'}</b><br/>"
+            f"<font size=8 color=#6b7280>{factura.emisor_nif}<br/>"
+            f"{factura.emisor_direccion}<br/>{factura.emisor_cp} {factura.emisor_ciudad}</font>",
+            normal,
+        ),
+        Paragraph(
+            "<font size=18><b>FACTURA</b></font><br/>"
+            f"<font size=11 color=#6b7280>{factura.numero_completo}</font><br/>"
+            f"<font size=9>Emitida: {factura.fecha_emision.strftime('%d/%m/%Y')}</font>",
+            ParagraphStyle("num", parent=normal, fontSize=13, alignment=TA_RIGHT),
+        ),
+    ]
+    head_cols = [100 * mm, 90 * mm]
+    if _LOGO.exists():
+        head_row.insert(0, Image(str(_LOGO), width=22 * mm, height=22 * mm))
+        head_cols = [22 * mm, 78 * mm, 90 * mm]
+    head = Table([head_row], colWidths=head_cols)
     head.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+        ("ALIGN", (-1, 0), (-1, 0), "RIGHT"),
+        ("ALIGN", (0, 0), (0, 0), "LEFT"),
     ]))
     body.append(head)
     body.append(Spacer(1, 8 * mm))

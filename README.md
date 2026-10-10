@@ -1,3 +1,5 @@
+<p align="center"><img src="app/static/assets/logo.png" alt="Logo de Faktu" width="120"></p>
+
 # Faktu — Gestión de facturas y gastos para autónomos
 
 Aplicación web (FastAPI) para crear, editar y gestionar **facturas** y
